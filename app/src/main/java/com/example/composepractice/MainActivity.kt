@@ -1,15 +1,22 @@
 package com.example.composepractice
 
-import android.os.Bundle
 import android.content.res.Configuration
+import android.content.res.Resources
+import android.graphics.BitmapFactory
+import android.graphics.BitmapShader
+import android.graphics.drawable.BitmapDrawable
+import android.os.Bundle
+import android.os.Parcelable
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,14 +26,26 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.res.ResourcesCompat
 import com.example.composepractice.ui.theme.ComposePracticeTheme
 import com.example.composepractice.ui.theme.ComposeTutorialTheme
+import kotlinx.parcelize.Parcelize
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +74,9 @@ fun Greeting(name: String) {
 
 @Composable
 fun MessageCard(msg: Message) {
+    val shapes = MaterialTheme.shapes
+    val colors = MaterialTheme.colors
+    val typography = MaterialTheme.typography
     Column {
         ComposePracticeTheme(darkTheme = false) {
             Greeting("Preview Composable")
@@ -66,17 +88,17 @@ fun MessageCard(msg: Message) {
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .border(1.5.dp, MaterialTheme.colors.secondary, CircleShape)
+                    .border(1.5.dp, colors.secondary, CircleShape)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Column {
                 Text(text = msg.author,
-                     color = MaterialTheme.colors.secondaryVariant,
-                     style = MaterialTheme.typography.subtitle2
+                     color = colors.secondaryVariant,
+                     style = typography.subtitle2
                 )
                 Text(text = msg.body,
-                     color = MaterialTheme.colors.secondaryVariant,
-                     style = MaterialTheme.typography.body2
+                     color = colors.secondaryVariant,
+                     style = typography.body2
                 )
             }
         }
@@ -96,27 +118,28 @@ fun MessageCard(msg: Message) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(text = msg.author,
-                         color = MaterialTheme.colors.primaryVariant
+                         color = colors.primaryVariant
                     )
                     // Add a vertical space between the author and message texts
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = msg.body,
-                         color = MaterialTheme.colors.primaryVariant
+                         color = colors.primaryVariant
                     )
                 }
             }
         }
         ComposeTutorialTheme {
-            Conversation(SampleData.conversationSample)
+            Conversation(SampleData.conversationSample, colors = colors, shapes = shapes, typography = typography)
         }
+//      Cupcake（紙杯蛋糕）、Donut（甜甜圈）、Eclair（閃電泡芙）、Froyo（優格冰淇淋）、Gingerbread（薑餅）、Honeycomb（蜂巢）[來源請求]、Ice Cream Sandwich（冰淇淋三明治）、Jelly Bean（雷根糖）、KitKat（奇巧巧克力）、Lollipop（棒棒糖）、Marshmallow（棉花糖）、Nougat（牛軋糖）、Oreo（奧利奧）、Pie（派）
         val listText by remember {
             mutableStateOf(
                 listOf(
-                    "张三", "李四", "王五", "陳六","黄七"
+                    "Cupcake", "Donut", "Eclair", "Froyo"
                 )
             )
         }
-        ListText(list = listText)
+        ListText(list = listText, colors = colors, typography = typography)
         val listVersion by remember {
             mutableStateOf(
                 listOf(
@@ -124,21 +147,30 @@ fun MessageCard(msg: Message) {
                 )
             )
         }
-        ListName(header = "Android Studio Version", names = listVersion)
+        ListName(header = "Android Studio Version", names = listVersion, colors = colors, shapes = shapes, typography = typography)
+        EditTextScreen(shapes, typography)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround) {
+            ParcelizeScreen(typography = typography)
+            MapSaverScreen(typography = typography)
+            ListSaverScreen(typography = typography)
+        }
+        //ShapeBrushStyle(avatarRes = R.mipmap.ic_launcher)
     }
 }
 
 @Composable
-fun Conversation(messages: List<Message>) {
+fun Conversation(messages: List<Message>, colors: Colors, shapes: Shapes, typography: Typography) {
     LazyColumn {
         items(messages) { message ->
-            ItemView(message)
+            ItemView(message, colors, shapes, typography)
         }
     }
 }
 
 @Composable
-fun ItemView(msg: Message) {
+fun ItemView(msg: Message, colors: Colors, shapes: Shapes, typography: Typography) {
     Row(modifier = Modifier.padding(all = 8.dp)) {
         Image(
             painter = painterResource(R.drawable.ic_launcher_foreground),
@@ -146,7 +178,7 @@ fun ItemView(msg: Message) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .border(1.5.dp, MaterialTheme.colors.secondaryVariant, CircleShape)
+                .border(1.5.dp, colors.secondaryVariant, CircleShape)
         )
         Spacer(modifier = Modifier.width(8.dp))
 
@@ -155,27 +187,21 @@ fun ItemView(msg: Message) {
         var isExpanded by remember { mutableStateOf(false) }
         // surfaceColor 會逐漸從一種顏色更新到另一種顏色
         val surfaceColor by animateColorAsState(
-            if (isExpanded) MaterialTheme.colors.primary else MaterialTheme.colors.surface,
-        )
-        val extraPadding by animateDpAsState(
-            if (isExpanded) 48.dp else 0.dp
+            if (isExpanded) colors.primary else colors.surface,
         )
 
         // 當我們點擊這個列時，我們切換 isExpanded 變量
-        Column(modifier = Modifier
-            .clickable { isExpanded = !isExpanded }
-            .weight(1f)
-            .padding(bottom = extraPadding)) {
+        Column(modifier = Modifier.clickable { isExpanded = !isExpanded }) {
             Text(
                 text = msg.author,
-                color = MaterialTheme.colors.secondaryVariant,
-                style = MaterialTheme.typography.subtitle2
+                color = colors.secondaryVariant,
+                style = typography.subtitle2
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Surface(
-                shape = MaterialTheme.shapes.medium,
+                shape = shapes.medium,
                 elevation = 1.dp,
                 // surfaceColor 顏色將從初級到表面逐漸變化
                 color = surfaceColor,
@@ -190,7 +216,7 @@ fun ItemView(msg: Message) {
                     // 如果消息被展開，我們顯示它的所有內容
                     // 否則我們只顯示第一行
                     maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-                    style = MaterialTheme.typography.body2
+                    style = typography.body2
                 )
             }
         }
@@ -198,7 +224,7 @@ fun ItemView(msg: Message) {
 }
 
 @Composable
-fun ListText(list: List<String>) {
+fun ListText(list: List<String>, colors: Colors, typography: Typography) {
     Row(horizontalArrangement = Arrangement.SpaceAround) {
         Spacer(modifier = Modifier.width(8.dp))
         Text(
@@ -208,19 +234,19 @@ fun ListText(list: List<String>) {
         for (item in list) {
             Text(
                 text = "$item, ",
-                color = MaterialTheme.colors.primarySurface,
-                style = MaterialTheme.typography.subtitle2
+                color = colors.primarySurface,
+                style = typography.subtitle2
             )
         }
         Text(
             text = "Count: ",
             color = Color.Gray,
-            style = MaterialTheme.typography.subtitle2
+            style = typography.subtitle2
         )
         Text(
             text = "${list.size}",
-            color = MaterialTheme.colors.primarySurface,
-            style = MaterialTheme.typography.subtitle2
+            color = colors.primarySurface,
+            style = typography.subtitle2
         )
     }
 }
@@ -232,11 +258,14 @@ fun ListText(list: List<String>) {
 fun ListName(
     header: String,
     names: List<String>,
+    colors: Colors,
+    shapes: Shapes,
+    typography: Typography
     // onNameClicked: (String) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val surfaceColor by animateColorAsState(
-        if (isExpanded) MaterialTheme.colors.primary else MaterialTheme.colors.surface,
+        if (isExpanded) colors.primary else colors.surface,
     )
     val extraPadding by animateDpAsState(
         if (isExpanded) 12.dp else 0.dp,
@@ -250,7 +279,7 @@ fun ListName(
         Text(
             header,
             color = Color.Magenta,
-            style = MaterialTheme.typography.subtitle1
+            style = typography.subtitle1
         )
         Divider()
         // LazyColumn 是 RecyclerView 的 Compose 版本。
@@ -261,7 +290,7 @@ fun ListName(
                 // 將重組。 當 [header] 更改時，這不會重新組合
                 // NamePickerItem(name, onNameClicked)
                 Surface(
-                    shape = MaterialTheme.shapes.medium,
+                    shape = shapes.medium,
                     elevation = 1.dp,
                     // surfaceColor 顏色將從初級到表面逐漸變化
                     color = surfaceColor,
@@ -270,14 +299,15 @@ fun ListName(
                         .animateContentSize()
                         .padding(1.dp)
                 ) {
-                    Row(modifier = Modifier
-                        .clickable { isExpanded = !isExpanded }
-                        .padding(horizontal = extraPadding.coerceAtLeast(0.dp))) {
+                    Row(
+                        modifier = Modifier
+                            .clickable { isExpanded = !isExpanded }
+                            .padding(horizontal = extraPadding.coerceAtLeast(0.dp))) {
                         Text(
                             text = name,
                             modifier = Modifier.padding(all = 4.dp),
                             maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-                            style = MaterialTheme.typography.body2
+                            style = typography.body2
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                     }
@@ -295,12 +325,134 @@ private fun NamePickerItem(name: String, onClicked: (String) -> Unit) {
     Text(name, Modifier.clickable(onClick = { onClicked(name) }))
 }
 
+@Composable
+fun EditTextScreen(shapes: Shapes, typography: Typography) {
+    var name by rememberSaveable { mutableStateOf("") }
+    EditTextContent(name = name, onNameChange = { name = it }, shapes, typography)
+}
+
+@Composable
+fun EditTextContent(name: String, onNameChange: (String) -> Unit, shapes: Shapes, typography: Typography) {
+    Column(modifier = Modifier.padding(8.dp)) {
+//        val name by remember { mutableStateOf("") }
+        if (name.isNotEmpty()) {
+            Text(
+                text = name,
+                modifier = Modifier.padding(bottom = 4.dp),
+                style = typography.subtitle1
+            )
+        }
+        OutlinedTextField(
+            value = name,
+            onValueChange = onNameChange,
+            label = { Text("Name") },
+            shape = shapes.small,
+            colors = TextFieldDefaults.outlinedTextFieldColors(),
+        )
+    }
+}
+
+@Parcelize
+data class ParcelizeBean(val key: String, val value: String) : Parcelable
+
+@Composable
+fun ParcelizeScreen(typography: Typography) {
+    val selected = rememberSaveable { mutableStateOf(ParcelizeBean("TW", "Parcelize")) }
+    RestoreStateText(text = selected.value.value, typography = typography)
+}
+
+data class MapSaverBean(val key: String, val value: String)
+
+val MapSaver = run {
+    val modelKey = "TW"
+    val countryKey = "MapSaver"
+    mapSaver(
+        save = { mapOf(modelKey to it.key, countryKey to it.value) },
+        restore = { MapSaverBean(it[modelKey] as String, it[countryKey] as String) }
+    )
+}
+
+@Composable
+fun MapSaverScreen(typography: Typography) {
+    val selected = rememberSaveable(stateSaver = MapSaver) { mutableStateOf(MapSaverBean("TW", "MapSaver")) }
+    RestoreStateText(text = selected.value.value, typography = typography)
+}
+
+data class ListSaverBean(val key: String, val value: String)
+
+val ListSaver = listSaver<ListSaverBean, Any>(
+    save = { listOf(it.key, it.value) },
+    restore = { ListSaverBean(it[0] as String, it[1] as String) }
+)
+
+@Composable
+fun ListSaverScreen(typography: Typography) {
+    val selected = rememberSaveable(stateSaver = ListSaver) { mutableStateOf(ListSaverBean("TW", "ListSaver")) }
+    RestoreStateText(text = selected.value.value, typography = typography)
+}
+
+@Composable
+fun RestoreStateText(text: String, typography: Typography) {
+    Text(
+        text = text,
+        color = Color.Red,
+        style = typography.body2,
+        maxLines = 1
+    )
+}
+
+@OptIn(ExperimentalTextApi::class)
+@Composable
+fun ShapeBrushStyle(
+    @DrawableRes avatarRes: Int,
+    modifier: Modifier = Modifier,
+    res: Resources = LocalContext.current.resources
+) {
+//    val bitmap = BitmapFactory.decodeResource(res, avatarRes)
+//    val bitmap = (ResourcesCompat.getDrawable(LocalContext.current.resources, R.drawable.ic_launcher_foreground, null) as BitmapDrawable).bitmap
+    val brush = remember {
+        ShaderBrush(
+            BitmapShader(
+//               bitmap,
+                ImageBitmap.imageResource(res, R.drawable.bitmap_launcher).asAndroidBitmap(),
+                android.graphics.Shader.TileMode.REPEAT,
+                android.graphics.Shader.TileMode.REPEAT
+            )
+        )
+    }
+    Box(
+        modifier = modifier.background(brush = brush).size(24.dp, 24.dp)
+    ) {
+//        Text(
+//            text = "ShaderBrush",
+//            color = Color.Red,
+//            style = TextStyle(fontSize = 12.sp),
+//            maxLines = 1,
+//        )
+    }
+}
+
+//@Composable
+//fun ArtistCard() {
+//    val padding = 16.dp
+//    Column(
+//        Modifier
+//            .clickable(onClick = onClick)
+//            .padding(padding)
+//            .fillMaxWidth()
+//    ) {
+//        // rest of the implementation
+//    }
+//}
+
+
 @Preview(name = "Light Mode")
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES,
     showBackground = true,
     name = "Dark Mode"
 )
+
 @Composable
 fun PreviewMessageCard() {
     MessageCard(
@@ -379,3 +531,30 @@ object SampleData {
 //        ),
     )
 }
+
+/*
+* Copyright (c) 2022, smuyyh@gmail.com All Rights Reserved.
+* #                                                   #
+* #                       _oo0oo_                     #
+* #                      o8888888o                    #
+* #                      88" . "88                    #
+* #                      (| -_- |)                    #
+* #                      0\  =  /0                    #
+* #                    ___/`---'\___                  #
+* #                  .' \\|     |# '.                 #
+* #                 / \\|||  :  |||# \                #
+* #                / _||||| -:- |||||- \              #
+* #               |   | \\\  -  #/ |   |              #
+* #               | \_|  ''\---/''  |_/ |             #
+* #               \  .-\__  '-'  ___/-. /             #
+* #             ___'. .'  /--.--\  `. .'___           #
+* #          ."" '<  `.___\_<|>_/___.' >' "".         #
+* #         | | :  `- \`.;`\ _ /`;.`/ - ` : | |       #
+* #         \  \ `_.   \_ __\ /__ _/   .-` /  /       #
+* #     =====`-.____`.___ \_____/___.-`___.-'=====    #
+* #                       `=---='                     #
+* #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   #
+* #                                                   #
+* #               佛祖保佑         永无BUG            #
+* #                                                   #
+*/
