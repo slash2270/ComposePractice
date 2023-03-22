@@ -2,11 +2,12 @@ package com.example.composepractice
 
 import android.content.res.Configuration
 import android.content.res.Resources
-import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.os.Parcelable
+import android.util.Log
+import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.DrawableRes
@@ -15,10 +16,9 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
@@ -42,17 +41,25 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.res.ResourcesCompat
+//import androidx.window.core.layout.WindowSizeClass
 import com.example.composepractice.ui.theme.ComposePracticeTheme
 import com.example.composepractice.ui.theme.ComposeTutorialTheme
+import com.example.composepractice.ui.theme.Shapes
+import kotlinx.coroutines.*
 import kotlinx.parcelize.Parcelize
 
+val LocalInterface = staticCompositionLocalOf<SampleInterface> { error("Not provided") }
 
-class MainActivity : ComponentActivity() {
+interface SampleInterface { fun log(message: String) }
+
+class MainActivity : ComponentActivity(), SampleInterface {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            ComposableInterface(sampleInterface = this)
             ComposePracticeTheme {
-                // A surface container using the 'background' color from the theme
+                // 使用主題中“背景”顏色的表面容器
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
@@ -62,13 +69,27 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun log(message: String) {
+        Log.v("Activity", message)
+    }
+
+}
+
+@Composable
+fun ComposableInterface(sampleInterface: SampleInterface) {
+    CompositionLocalProvider(
+        LocalInterface provides sampleInterface
+    ) {
+        LocalInterface.current.log("ComposableInterface") // 在任何需要的級別調用
+    }
 }
 
 @Composable
 fun Greeting(name: String) {
     Text(text = "Hello $name!",
-         color = Color.Green,
-         style = MaterialTheme.typography.h6
+        color = Color.Green,
+        style = MaterialTheme.typography.h6
     )
 }
 
@@ -81,49 +102,52 @@ fun MessageCard(msg: Message) {
         ComposePracticeTheme(darkTheme = false) {
             Greeting("Preview Composable")
         }
+        Spacer(modifier = Modifier.width(4.dp))
         Row(modifier = Modifier.padding(all = 4.dp)) {
+            val modifier1 = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .border(1.5.dp, colors.secondary, CircleShape)
+            val modifier2 = Modifier.size(20.dp)
             Image(
                 painter = painterResource(R.drawable.ic_launcher_foreground),
                 contentDescription = "Contact profile picture",
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .border(1.5.dp, colors.secondary, CircleShape)
+                modifier = modifier1.then(modifier2)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Column {
                 Text(text = msg.author,
-                     color = colors.secondaryVariant,
-                     style = typography.subtitle2
+                    color = colors.secondaryVariant,
+                    style = typography.subtitle2
                 )
                 Text(text = msg.body,
-                     color = colors.secondaryVariant,
-                     style = typography.body2
+                    color = colors.secondaryVariant,
+                    style = typography.body2
                 )
             }
         }
         ComposeTutorialTheme(darkTheme = true) {
-            // Add padding around our message
+            // 在我們的消息周圍添加填充
             Row(modifier = Modifier.padding(all = 8.dp)) {
                 Image(
                     painter = painterResource(R.drawable.ic_launcher_background),
                     contentDescription = "Contact profile picture",
                     modifier = Modifier
-                        // Set image size to 40 dp
+                        // 將圖像大小設置為 40 dp
                         .size(40.dp)
-                        // Clip image to be shaped as a circle
+                        // 將圖像裁剪成圓形
                         .clip(CircleShape)
                 )
-                // Add a horizontal space between the image and the column
+                // 在圖像和列之間添加一個水平空間墊片
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(text = msg.author,
-                         color = colors.primaryVariant
+                        color = colors.primaryVariant
                     )
-                    // Add a vertical space between the author and message texts
+                    // 在作者和消息文本之間添加一個垂直空間
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = msg.body,
-                         color = colors.primaryVariant
+                        color = colors.primaryVariant
                     )
                 }
             }
@@ -149,23 +173,73 @@ fun MessageCard(msg: Message) {
         }
         ListName(header = "Android Studio Version", names = listVersion, colors = colors, shapes = shapes, typography = typography)
         EditTextScreen(shapes, typography)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround) {
+        Row(horizontalArrangement = Arrangement.SpaceAround) {
             ParcelizeScreen(typography = typography)
             MapSaverScreen(typography = typography)
             ListSaverScreen(typography = typography)
+            Box(
+                modifier = Modifier
+                    .background(Color.Black, Shapes.small)
+                    .padding(8.dp, 0.dp)
+            ) {
+                Spacer(
+                    Modifier
+                        .matchParentSize()
+                        .background(Color.LightGray))
+                Text(text = "modifier order",
+                    color = colors.error,
+                    style = typography.body2
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .padding(8.dp, 0.dp)
+                    .background(Color.Black, Shapes.small)
+            ) {
+                Spacer(
+                    Modifier
+                        .matchParentSize()
+                        .background(Color.Gray))
+                Text(text = "modifier order",
+                    color = colors.error,
+                    style = typography.body2
+                )
+            }
         }
-        //ShapeBrushStyle(avatarRes = R.mipmap.ic_launcher)
+        SampleStateButton()
+        LaunchedEffect(null) {
+            Log.v("LaunchedEffect", "這個block執行在協程${Thread.currentThread().name}中")
+        }
+        // `LaunchedEffect` 將取消並重新啟動
+        // `scaffoldState.snackBarHostState` 變化
+        val scaffoldState: ScaffoldState = rememberScaffoldState()
+        LaunchedEffect(scaffoldState.snackbarHostState) {
+            // 使用協程顯示 snackBar，當協程被取消時
+            // snackBar 會自動關閉。 這個協程將在任何時候取消
+            // `state.hasError` 為假，只有當 `state.hasError` 為真時才開始
+            //（由於上面的 if-check），或者如果 `scaffoldState.snackBarHostState` 發生變化。
+            scaffoldState.snackbarHostState.showSnackbar(
+                message = "Error message",
+                actionLabel = "Retry message"
+            )
+        }
+//        ShapeBrushStyle(avatarRes = R.mipmap.ic_launcher)
     }
 }
 
 @Composable
 fun Conversation(messages: List<Message>, colors: Colors, shapes: Shapes, typography: Typography) {
     LazyColumn {
-        items(messages) { message ->
-            ItemView(message, colors, shapes, typography)
-        }
+        items(
+            items = messages,
+//            key = { message -> message.author },
+            itemContent = { message: Message ->
+                if (message.author.isNotEmpty()) {
+                    ItemView(message, colors, shapes, typography)
+                } else {
+                    Text(text = "EmptyView")
+                }
+            })
     }
 }
 
@@ -191,7 +265,9 @@ fun ItemView(msg: Message, colors: Colors, shapes: Shapes, typography: Typograph
         )
 
         // 當我們點擊這個列時，我們切換 isExpanded 變量
-        Column(modifier = Modifier.clickable { isExpanded = !isExpanded }) {
+        Column(modifier = Modifier
+            .clickable { isExpanded = !isExpanded }
+            .fillMaxWidth()) {
             Text(
                 text = msg.author,
                 color = colors.secondaryVariant,
@@ -226,28 +302,34 @@ fun ItemView(msg: Message, colors: Colors, shapes: Shapes, typography: Typograph
 @Composable
 fun ListText(list: List<String>, colors: Colors, typography: Typography) {
     Row(horizontalArrangement = Arrangement.SpaceAround) {
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = "Item: ",
-            color = Color.Gray
-        )
-        for (item in list) {
+        Spacer(modifier = Modifier.weight(0.3f))
+        Row(modifier = Modifier.weight(6.7f)) {
             Text(
-                text = "$item, ",
+                text = "Item: ",
+                color = Color.Gray,
+            )
+            for (item in list) {
+                Text(
+                    text = "$item, ",
+                    color = colors.primarySurface,
+                    style = typography.subtitle2,
+                )
+            }
+        }
+        Row(modifier = Modifier.weight(3.0f)) {
+            Text(
+                text = "Count: ",
+                color = Color.Gray,
+                style = typography.subtitle2,
+                modifier = Modifier.run { offset(x = (10).dp) }
+            )
+            Text(
+                text = "${list.size}",
                 color = colors.primarySurface,
-                style = typography.subtitle2
+                style = typography.subtitle2,
+                modifier = Modifier.run { offset(x = (10).dp) }
             )
         }
-        Text(
-            text = "Count: ",
-            color = Color.Gray,
-            style = typography.subtitle2
-        )
-        Text(
-            text = "${list.size}",
-            color = colors.primarySurface,
-            style = typography.subtitle2
-        )
     }
 }
 
@@ -284,7 +366,7 @@ fun ListName(
         Divider()
         // LazyColumn 是 RecyclerView 的 Compose 版本。
         // 傳遞給 items() 的 lambda 類似於 RecyclerView.ViewHolder。
-        LazyRow {
+        LazyRow(modifier = Modifier.paddingFromBaseline(top = 25.dp)) {
             items(names) { name ->
                 // 當一個項目的 [name] 更新時，該項目的適配器
                 // 將重組。 當 [header] 更改時，這不會重新組合
@@ -403,25 +485,27 @@ fun RestoreStateText(text: String, typography: Typography) {
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
-fun ShapeBrushStyle(
+fun ShapeBrushStyle( // bug?
     @DrawableRes avatarRes: Int,
     modifier: Modifier = Modifier,
     res: Resources = LocalContext.current.resources
 ) {
 //    val bitmap = BitmapFactory.decodeResource(res, avatarRes)
-//    val bitmap = (ResourcesCompat.getDrawable(LocalContext.current.resources, R.drawable.ic_launcher_foreground, null) as BitmapDrawable).bitmap
-    val brush = remember {
+    val bitmap = (ResourcesCompat.getDrawable(res, R.drawable.ic_launcher_foreground, null) as BitmapDrawable).bitmap
+    val brush = remember(key1 = R.drawable.bitmap_launcher) {
         ShaderBrush(
             BitmapShader(
-//               bitmap,
-                ImageBitmap.imageResource(res, R.drawable.bitmap_launcher).asAndroidBitmap(),
+                bitmap,
+//                ImageBitmap.imageResource(res, R.drawable.bitmap_launcher).asAndroidBitmap(),
                 android.graphics.Shader.TileMode.REPEAT,
                 android.graphics.Shader.TileMode.REPEAT
             )
         )
     }
     Box(
-        modifier = modifier.background(brush = brush).size(24.dp, 24.dp)
+        modifier = modifier
+            .background(brush = brush)
+            .size(24.dp, 24.dp)
     ) {
 //        Text(
 //            text = "ShaderBrush",
@@ -432,19 +516,75 @@ fun ShapeBrushStyle(
     }
 }
 
+/**
+ * 旋轉裝置
+ * */
 //@Composable
-//fun ArtistCard() {
-//    val padding = 16.dp
-//    Column(
-//        Modifier
-//            .clickable(onClick = onClick)
-//            .padding(padding)
-//            .fillMaxWidth()
-//    ) {
-//        // rest of the implementation
+//fun rememberMyAppState(
+//    windowSizeClass: WindowSizeClass
+//): MyAppState {
+//    return remember(windowSizeClass) {
+//        MyAppState(windowSizeClass)
 //    }
 //}
+//
+//@Stable
+//class MyAppState(
+//    private val windowSizeClass: WindowSizeClass
+//) {
+//
+//}
 
+/**
+ * 將類型標記為穩定以支持跳過和智能重組。
+ */
+//@Stable
+//interface UiState<T : Result<T>> {
+//    val value: T?
+//    val exception: Throwable?
+//    val hasError: Boolean
+//        get() = exception != null
+//}
+
+@Composable
+fun SampleStateButton() {
+    var count1 = 1
+    var count2 by remember { mutableStateOf(1) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    var resp by remember {
+        mutableStateOf("")
+    }
+    LaunchedEffect(count2) {
+        delay(400)
+        resp ="LaunchedEffect"
+//        "Thread = ${Thread.currentThread().name}"
+    }
+    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+        Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1.0f)) {
+            Text(text = resp, style = TextStyle(fontSize = 12.sp))
+            Button(
+                onClick = { count2++ }) {
+                Text("$count2", color = Color.White)
+            }
+        }
+        Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1.0f)) {
+            Text(text = "Normal", style = TextStyle(fontSize = 12.sp))
+            Button(
+                onClick = { count1++ }) {
+                Text("$count1", color = Color.White)
+            }
+        }
+        Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1.0f)) {
+            Text(text = "InteractionSource", style = TextStyle(fontSize = 12.sp))
+            Button(
+                onClick = { count2-- },
+                interactionSource = interactionSource) {
+                Text("$count2", color = Color.White)
+            }
+        }
+    }
+}
 
 @Preview(name = "Light Mode")
 @Preview(

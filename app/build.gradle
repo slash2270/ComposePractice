@@ -14,7 +14,6 @@ android {
         targetSdk 33
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
@@ -38,7 +37,7 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.3.2"
+        kotlinCompilerExtensionVersion = "$compose_ui_version"
     }
     packagingOptions {
         resources {
@@ -54,6 +53,8 @@ dependencies {
     implementation "androidx.compose.ui:ui:$compose_ui_version"
     implementation "androidx.compose.ui:ui-tooling-preview:$compose_ui_version"
     implementation 'androidx.compose.material:material:1.2.0'
+    implementation 'androidx.benchmark:benchmark-common:1.0.0'
+//    implementation 'androidx.window:window-core:+' 2023/02/01
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
@@ -61,10 +62,10 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_ui_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_ui_version"
 //    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.0-beta01")
-    implementation("androidx.compose.runtime:runtime:1.3.3")
-    implementation("androidx.compose.runtime:runtime-livedata:1.3.3")
-    implementation("androidx.compose.runtime:runtime-rxjava2:1.3.3")
-    implementation("androidx.compose.runtime:runtime-rxjava3:1.3.3")
+    implementation("androidx.compose.runtime:runtime:$compose_ui_version")
+    implementation("androidx.compose.runtime:runtime-livedata:$compose_ui_version")
+    implementation("androidx.compose.runtime:runtime-rxjava2:$compose_ui_version")
+    implementation("androidx.compose.runtime:runtime-rxjava3:$compose_ui_version")
     // 對本地庫模塊的依賴
 //    implementation(project(":app"))
     // 對本地二進製文件的依賴
