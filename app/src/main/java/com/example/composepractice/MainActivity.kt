@@ -9,6 +9,7 @@ import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.Animatable
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
@@ -31,8 +32,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -128,7 +134,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     val modifier2 = Modifier.size(20.dp)
                                     Image(
                                         painter = painterResource(R.drawable.ic_launcher_foreground),
-                                        contentDescription = "Contact profile picture",
+                                        contentDescription = getString(R.string.contentDescription),
                                         modifier = modifier1.then(modifier2)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -148,10 +154,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     Row(modifier = Modifier.padding(all = 8.dp)) {
                                         Image(
                                             painter = painterResource(R.drawable.ic_launcher_background),
-                                            contentDescription = "Contact profile picture",
-                                            modifier = Modifier
-                                                .size(40.dp) // 將圖像大小設置為 40 dp
-                                                .clip(CircleShape) // 將圖像裁剪成圓形
+                                            contentDescription = getString(R.string.contentDescription),
+                                            modifier = Modifier.size(40.dp) // 將圖像大小設置為 40 dp.clip(CircleShape) // 將圖像裁剪成圓形
                                         )
                                         // 在圖像和列之間添加一個水平空間墊片
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -190,15 +194,16 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             }
                             ListName(header = "Android Studio Version:", names = listVersion, colors = colors, style = style, shapes = shapes)
                             EditTextScreen(shapes, typography)
+                            val eightDp = Modifier.width(8.dp)
                             Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                                 ParcelizeScreen(style = style)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = eightDp)
                                 SaverScreen(style = style)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = eightDp)
                                 MapSaverScreen(style = style)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = eightDp)
                                 ListSaverScreen(style = style)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = eightDp)
                                 Box(modifier = Modifier
                                     .background(Color.Black, Shapes.small)
                                     .padding(8.dp, 0.dp)) {
@@ -211,7 +216,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                         style = style
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = eightDp)
                                 Box(modifier = Modifier
                                     .padding(8.dp, 0.dp)
                                     .background(Color.Black, Shapes.small)) {
@@ -224,10 +229,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                         style = style
                                     )
                                 }
+                                StatusRead(colors = colors, style = style)
+                                DrawLineDemo(colors = colors)
+                                DrawOvalDemo(colors = colors)
+                                DrawRectDemo(colors = colors)
                             }
                             SampleStateButton(style = style)
                             RememberCoroutineScope(rememberCoroutineScope = rememberCoroutineScope, colors = colors)
                             SnapShotFlow(colors = colors, style = style)
+                            LazyListStateDemo(colors = colors, style = style)
+                            ReorganizationLoopDemo(colors = colors, style = style)
+                            SortList(colors = colors, style = style)
                             LaunchedEffect(null, Dispatchers.IO) {
                                 Log.v("LaunchedEffect", "這個block執行在協程${Thread.currentThread().name}中")
                             }
@@ -268,14 +280,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
         Row(modifier = Modifier.padding(all = 8.dp)) {
             Image(
                 painter = painterResource(R.drawable.ic_launcher_foreground),
-                contentDescription = null,
+                contentDescription = getString(R.string.contentDescription),
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
                     .border(1.5.dp, colors.secondaryVariant, CircleShape)
             )
             Spacer(modifier = Modifier.width(8.dp))
-
             // 我們跟踪消息是否在此展開 多變的
             var isExpanded by remember { mutableStateOf(false) }
             // surfaceColor 會逐漸從一種顏色更新到另一種顏色
@@ -917,7 +928,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
             is Result.Error -> {
                 println("❌ ProduceStateExample() Result.Error")
                 with(context) {showToast("❌ ProduceStateExample() Result.Error")}
-                Image(imageVector = Icons.Default.Close, contentDescription = null)
+                Image(imageVector = Icons.Default.Close, contentDescription = getString(R.string.contentDescription))
             }
             is Result.Success -> {
                 println("✅ ProduceStateExample() Result.Success")
@@ -925,36 +936,299 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 val image = (imageState.value as Result.Success).image
                 Image(
                     painterResource(id = image.imageIdRes),
-                    contentDescription = null
+                    contentDescription = getString(R.string.contentDescription)
                 )
             }
         }
     }
-    private fun Context.showToast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+
+    @Composable
+    private fun StatusRead(colors: Colors, style: TextStyle) {
+        val mutableState: MutableState<String> = remember { mutableStateOf("MutableState") } // 狀態與屬性委託一起讀取
+        val rememberState: String by remember { mutableStateOf("RememberState") } // 使用屬性委託讀取狀態。
+        val offsetX by remember { mutableStateOf((-4).dp) }
+        val color by remember { mutableStateOf(colors.error) }
+        Text(
+            text = "${mutableState.value} $rememberState",
+            color = color,
+            style = style,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.offset {// 在放置步驟中讀取 `offsetX` 狀態 計算偏移量時的佈局階段。 `offsetX` 的變化重新啟動佈局。
+                IntOffset(offsetX.roundToPx(), 0)
+            }
+        )
+    }
+
+    @Composable
+    fun DrawLineDemo(colors: Colors) {
+        Canvas(modifier = Modifier
+            .width(75.dp)
+            .height(30.dp), onDraw = {
+            drawLine(
+                color = colors.error,
+                start = Offset(0f, 0f),
+                end = Offset(200f, 0f),
+                strokeWidth = 30f,
+                blendMode = BlendMode.Difference
+            )
+        })
+        Canvas(modifier = Modifier
+            .width(75.dp)
+            .height(30.dp), onDraw = {
+            drawLine(
+                color = colors.error,
+                start = Offset(0f, 0f),
+                end = Offset(200f, 0f),
+                strokeWidth = 30f,
+                cap = StrokeCap.Round,
+                blendMode = BlendMode.Clear
+            )
+        })
+    }
+
+    @Composable
+    fun DrawOvalDemo(colors: Colors) {
+        Canvas(modifier = Modifier
+            .width(75.dp)
+            .height(30.dp), onDraw = {
+            drawOval(
+                color = colors.error,
+                size = Size(200.0f, 30.0f),
+                alpha = 0.5f,
+                blendMode = BlendMode.Color
+            )
+        })
+    }
+
+    @Composable
+    fun DrawRectDemo(colors: Colors) {
+        val color by remember { mutableStateOf(colors.error) }
+        Canvas(modifier = Modifier
+            .width(75.dp)
+            .height(30.dp)) {
+            drawRect( // 在繪圖階段讀取 `color` 狀態 當畫布被渲染時。 `color` 的變化重新開始繪圖。
+                color = color,
+                size = Size(200.0f, 30.0f), alpha = 0.5f,
+                colorFilter = ColorFilter.lighting(Color.White, Color.Red),
+                blendMode = BlendMode.ColorDodge
+            )
+        }
+    }
+
+    @Composable
+    fun LazyListStateDemo(colors: Colors, style: TextStyle) {
+        Surface(color = colors.onSurface) {
+            val listState = rememberLazyListState()
+            LazyRow(state = listState, modifier = Modifier.height(20.dp)) {
+                item{
+                    Text(
+                        text = "LazyListState: ",
+                        color = colors.primaryVariant,
+                        style = style,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                items(20) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                        contentScale = ContentScale.Fit,
+                        contentDescription = getString(R.string.contentDescription),
+                        modifier = Modifier.offset {
+                            IntOffset(x = listState.firstVisibleItemScrollOffset / 2, y = listState.firstVisibleItemScrollOffset / 2) // Layout 中 firstVisibleItemScrollOffset 的狀態讀取
+                        }
+//                        modifier = Modifier.offset(
+//                            with(LocalDensity.current) {// 組合中 firstVisibleItemScrollOffset 的狀態讀取
+//                                (listState.firstVisibleItemScrollOffset / 2).toDp()
+//                            }
+//                        )
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun ReorganizationLoopDemo(colors: Colors, style: TextStyle) {
+        Box {
+            var imageHeightPx by remember { mutableStateOf(0) }
+            LazyRow(modifier = Modifier.height(20.dp)){
+                item {
+                    Image(
+                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                        contentDescription = getString(R.string.contentDescription),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onSizeChanged { size ->
+                                // Don't do this
+                                imageHeightPx = size.height
+                            }
+                    )
+                }
+                item {
+                    Text(
+                        text = "imagePx: $imageHeightPx",
+                        color = colors.surface,
+                        style = style,
+                        modifier = Modifier.padding(
+                            horizontal = with(LocalDensity.current) { imageHeightPx.toDp() / 20 }
+                        )
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+                item {
+                    ControlDemo(string = "Control", style = style)
+                }
+                item {
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+                item {
+                    CustomDemo(colors = colors, style = style)
+                }
+                item {
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+                item {
+                    val listColor = listOf(Color.Green, Color.Blue, Color.Red, Color.Yellow, Color.Cyan)
+                    GradientButton(background = listColor) {
+                        repeat(listColor.size) {
+                            Text(
+                                text = "Gradient Button",
+                                color = colors.onError,
+                                style = style,
+                            )
+                        }
+                    }
+                }
+                item {
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+                item {
+                    BespokeButton(colors = colors) {
+                        Text(
+                            text = "Bespoke Button",
+                            color = colors.onError,
+                            style = style,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun ControlDemo(string: String, style: TextStyle) {
+        val text = "Control"
+        val remember = remember { Animatable(Color.Gray) }
+        LaunchedEffect(text, Dispatchers.IO) {
+            delay(3000)
+            remember.animateTo(if (text == string) Color.Green else Color.Red)
+        }
+        Text(
+            text = text,
+            color = remember.value,
+            style = style,
+        )
+    }
+
+    @Composable
+    fun CustomDemo(colors: Colors, style: TextStyle) {
+        Surface(color = colors.surface) {
+            CompositionLocalProvider { // 設置 LocalContentAlpha
+                ProvideTextStyle(MaterialTheme.typography.subtitle1) {
+                    Row {
+                        Text(
+                            text = "Custom",
+                            color = colors.onSurface,
+                            style = style
+                        )
+                }
+             }
+          }
+       }
+    }
+
+    @Composable
+    fun GradientButton(background: List<Color>, content: @Composable RowScope.() -> Unit) {
+        val coroutineScope = rememberCoroutineScope()
+        Row(
+            modifier = Modifier
+                .clickable {
+                    coroutineScope.launch(Dispatchers.IO) {
+
+                    }
+                }
+                .background(
+                    Brush.horizontalGradient(background)
+                )
+        ) {
+            CompositionLocalProvider { // set material LocalContentAlpha
+                ProvideTextStyle(MaterialTheme.typography.button) {
+                    content()
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun BespokeButton(colors: Colors, content: @Composable RowScope.() -> Unit) {
+        Row(
+            modifier = Modifier
+                .clickable {
+
+                }
+                .background(colors.error)
+        ) {
+            content()
+        }
+    }
+
+    @Composable
+    fun SortList(colors: Colors, style: TextStyle) {
+        val list = listOf("Activity Manager", "Window Manager", "Content Providers", "View System", "Notification Manager")
+        val listComparator = Comparator<String> { left, right ->
+            right.compareTo(left)
+        }
+        val comparator by remember { mutableStateOf(listComparator) }
+        val sortedList = remember(list, comparator) {
+            list.sortedWith(comparator)
+        }
+        LazyRow(modifier = Modifier.height(20.dp)) {
+            item {
+                Text(
+                    text = "Sort List: ",
+                    color = colors.onError,
+                    style = style,
+                )
+            }
+            items(sortedList) {
+                Text(
+                    text = "$it ",
+                    color = colors.onSurface,
+                    style = style
+                )
+            }
+        }
+    }
+
+    private fun Context.showToast(msg: String) = Toast.makeText(this, msg, LENGTH_SHORT).show()
     sealed class Result {
         object Loading : Result()
         object Error : Result()
         class Success(val image: ImageRes) : Result()
     }
     class ImageRes(val imageIdRes: Int)
-    class ImageRepository {     /**
-     * Returns a drawable resource or null to simulate Result with Success or Error states
+    class ImageRepository {
+    /**
+     * 返回可繪製資源或 null 以模擬具有成功或錯誤狀態的結果
      */
     suspend fun load(url: String): ImageRes? {
         delay(2000)
-        // Random is added to return null if get a random number that is zero.
-        // Possibility of getting null is 1/4
+        // 如果得到一個隨機數為零，則添加 Random 以返回 null。 得到null的可能性是1/4
         return if (kotlin.random.Random.nextInt(until = 4) > 0) {
-            val images = listOf(
-                R.drawable.ic_launcher_background,
-                R.drawable.ic_launcher_background,
-                R.drawable.ic_launcher_background,
-                R.drawable.ic_launcher_background,
-                R.drawable.ic_launcher_background,
-                R.drawable.ic_launcher_background,
-            )
-            // Load a random id each time load function is called
-            ImageRes(images[kotlin.random.Random.nextInt(images.size)])
+            val images = listOf(R.drawable.ic_launcher_background, R.drawable.ic_launcher_background, R.drawable.ic_launcher_background, R.drawable.ic_launcher_background, R.drawable.ic_launcher_background, R.drawable.ic_launcher_background,)
+            ImageRes(images[kotlin.random.Random.nextInt(images.size)]) // 每次調用 load 函數時加載一個隨機 id
         } else {
             null
         }
