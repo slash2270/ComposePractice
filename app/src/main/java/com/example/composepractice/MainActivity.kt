@@ -1202,9 +1202,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     style = style,
                 )
             }
-            items(sortedList) {
+            items(sortedList) { it ->
                 Text(
-                    text = "$it ",
+                    text = "'$it' ",
                     color = colors.onSurface,
                     style = style
                 )
