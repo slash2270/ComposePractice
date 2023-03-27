@@ -9,17 +9,12 @@ import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.Animatable
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -58,6 +53,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.parcelize.Parcelize
 import kotlin.ranges.coerceAtLeast
+import kotlin.reflect.KProperty
 
 interface SampleInterface { fun log(message: String) }
 
@@ -239,7 +235,20 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             SnapShotFlow(colors = colors, style = style)
                             LazyListStateDemo(colors = colors, style = style)
                             ReorganizationLoopDemo(colors = colors, style = style)
-                            SortList(colors = colors, style = style)
+                            val list = listOf("Activity Manager", "Window Manager", "Content Providers", "View System", "Notification Manager")
+                            val listModifier = Modifier
+                                .height(20.dp)
+                                .width(165.dp)
+                            Row {
+                                SortList(colors = colors, style = style, list = list, modifier = listModifier)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                DerivedStateList(colors = colors, style = style, list = list, modifier = listModifier)
+                            }
+                            Row(modifier = Modifier.height(20.dp)) {
+                                DelegatedProperties(colors = colors, style = style)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                DestructuringDataClasses(colors = colors, style = style)
+                            }
                             LaunchedEffect(null, Dispatchers.IO) {
                                 Log.v("LaunchedEffect", "這個block執行在協程${Thread.currentThread().name}中")
                             }
@@ -1009,7 +1018,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
             drawRect( // 在繪圖階段讀取 `color` 狀態 當畫布被渲染時。 `color` 的變化重新開始繪圖。
                 color = color,
                 size = Size(200.0f, 30.0f), alpha = 0.5f,
-                colorFilter = ColorFilter.lighting(Color.White, Color.Red),
+                colorFilter = ColorFilter.lighting(colors.onSurface, colors.error),
                 blendMode = BlendMode.ColorDodge
             )
         }
@@ -1185,8 +1194,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun SortList(colors: Colors, style: TextStyle) {
-        val list = listOf("Activity Manager", "Window Manager", "Content Providers", "View System", "Notification Manager")
+    fun SortList(colors: Colors, style: TextStyle, list: List<String>, modifier: Modifier) {
         val listComparator = Comparator<String> { left, right ->
             right.compareTo(left)
         }
@@ -1194,7 +1202,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
         val sortedList = remember(list, comparator) {
             list.sortedWith(comparator)
         }
-        LazyRow(modifier = Modifier.height(20.dp)) {
+        LazyRow(modifier = modifier) {
             item {
                 Text(
                     text = "Sort List: ",
@@ -1210,6 +1218,127 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 )
             }
         }
+    }
+
+    @Composable
+    fun DerivedStateList(colors: Colors, style: TextStyle, list: List<String>, modifier: Modifier) {
+        val listState = rememberLazyListState()
+        val scope = rememberCoroutineScope()
+        LazyRow(state = listState, modifier = modifier) {
+            item {
+                Text(
+                    text = "DerivedState List: ",
+                    color = colors.onError,
+                    style = style,
+                )
+            }
+            items(list) { it ->
+                Text(
+                    text = "'$it' ",
+                    color = colors.onSurface,
+                    style = style
+                )
+            }
+        }
+//        val showButton by remember {
+//            derivedStateOf {
+//                listState.firstVisibleItemIndex > 0
+//            }
+//        }
+        AnimatedVisibility(visible = !listState.isScrollingUp(), enter = fadeIn(), exit = fadeOut()) {
+            GoToFirst {
+                scope.launch(Dispatchers.IO) {
+                    listState.scrollToItem(0)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun GoToFirst(goToFirst: () -> Unit) {
+        Button(
+            modifier = Modifier
+                .padding(start = 4.dp)
+                .height(15.dp)
+                .width(15.dp),
+            onClick = goToFirst,
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = "go to First"
+            )
+        }
+    }
+
+    @Composable
+    fun BadComposable(colors: Colors, style: TextStyle) {
+        var count by remember { mutableStateOf(0) } // 導致點擊重組
+        Row(modifier = Modifier.height(20.dp)) {
+            Button(onClick = { count++ },
+                Modifier
+                    .wrapContentSize()
+                    .height(20.dp)) {
+                Text("Recompose",
+                    color = colors.onError,
+                    style = style
+                )
+            }
+            Text(" $count ",
+                color = colors.onError,
+                style = style
+            )
+            if (count == 0) {
+                count++
+            }
+            count++ // 向後寫入，在讀取後寫入狀態</b>
+            Button(onClick = { count = 0 },
+                Modifier
+                    .wrapContentSize()
+                    .height(20.dp)) {
+                Text("Stop",
+                    color = colors.onError,
+                    style = style
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun DelegatedProperties(colors: Colors, style: TextStyle) {
+        val exampleDelegate = ExampleDelegate()
+        Text("委託屬性: " + exampleDelegate.delegatedProperty,
+            color = colors.secondaryVariant,
+            style = style
+        )
+        println("委託屬性: " + exampleDelegate.delegatedProperty)
+    }
+
+    @Composable
+    fun DestructuringDataClasses(colors: Colors, style: TextStyle) {
+        val mary = Person(name = "Mary", age = 35)
+        val (_, _) = mary
+        Text("${mary.name} ${mary.age}",
+            color = colors.secondaryVariant,
+            style = style
+        )
+    }
+
+    @Composable
+    fun LazyListState.isScrollingUp(): Boolean {
+        var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
+        var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
+        return remember(this) {
+            derivedStateOf {
+                if (previousIndex != firstVisibleItemIndex) {
+                    previousIndex > firstVisibleItemIndex
+                } else {
+                    previousScrollOffset >= firstVisibleItemScrollOffset
+                }.also {
+                    previousIndex = firstVisibleItemIndex
+                    previousScrollOffset = firstVisibleItemScrollOffset
+                }
+            }
+        }.value
     }
 
     private fun Context.showToast(msg: String) = Toast.makeText(this, msg, LENGTH_SHORT).show()
@@ -1251,6 +1380,22 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
 }
 
+class ExampleDelegate {
+    var delegatedProperty: String by Delegate()
+}
+
+class Delegate {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): String {
+        return "Property: ${property.name}"
+//        return "Ref: $thisRef Property: ${property.name}"
+    }
+
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: String) {
+        println("Value: $value Property: ${property.name} Ref: $thisRef.")
+    }
+}
+
+data class Person(val name: String, val age: Int)
 data class Message(val author: String, val body: String)
 
 object SampleData {
