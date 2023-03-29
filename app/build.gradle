@@ -54,6 +54,7 @@ dependencies {
     implementation "androidx.compose.ui:ui-tooling-preview:$compose_ui_version"
     implementation 'androidx.compose.material:material:1.2.0'
     implementation 'androidx.benchmark:benchmark-common:1.0.0'
+    implementation 'junit:junit:4.12'
 //    implementation 'androidx.window:window-core:+' 2023/02/01
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
@@ -68,6 +69,10 @@ dependencies {
     implementation("androidx.compose.runtime:runtime-rxjava3:$compose_ui_version")
     def nav_version = "2.5.3"
     implementation("androidx.navigation:navigation-compose:$nav_version")
+    // Test rules and transitive dependencies:
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:$compose_ui_version")
+    // Needed for createAndroidComposeRule, but not createComposeRule:
+    debugImplementation("androidx.compose.ui:ui-test-manifest:$compose_ui_version")
     // 對本地庫模塊的依賴
 //    implementation(project(":app"))
     // 對本地二進製文件的依賴

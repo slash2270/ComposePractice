@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="numberOfSongsAvailable">
+        <item quantity="zero">Zero song found.</item>
+        <item quantity="one">One song found.</item>
+        <item quantity="two">Two song found.</item>
+        <item quantity="few">Few song found.</item>
+        <item quantity="other">Other song found.</item>
+        <item quantity="many">Many song found.</item>
+    </plurals>
+</resources>

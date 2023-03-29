@@ -1,5 +1,6 @@
 package com.example.composepractice.view
 
+//import androidx.window.core.layout.WindowSizeClass
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
@@ -8,6 +9,7 @@ import android.util.Log
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -17,12 +19,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
@@ -56,8 +56,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.composepractice.Constants.Companion.contentDescription
 import com.example.composepractice.R
-//import androidx.window.core.layout.WindowSizeClass
 import com.example.composepractice.ui.theme.ComposePracticeTheme
 import com.example.composepractice.ui.theme.ComposeTutorialTheme
 import com.example.composepractice.ui.theme.Shapes
@@ -70,6 +70,7 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.ranges.coerceAtLeast
 import kotlin.reflect.KProperty
+
 
 interface SampleInterface {
     fun log(message: String)
@@ -118,16 +119,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun MessageCard(msg: Message, navigation: () -> Unit) {
+    fun MessageCard(msg: Message, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, navigation: () -> Unit) {
         val shapes = MaterialTheme.shapes
         val colors = MaterialTheme.colors
         val typography = MaterialTheme.typography
         val style = TextStyle(fontSize = 11.sp)
-        val rememberCoroutineScope = rememberCoroutineScope()
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Compose Practice", color = Color.White) },
+                    title = { Text("Compose Practice", color = colors.onError) },
                     backgroundColor = Color(0xff0f9d58)
                 )
             },
@@ -152,7 +152,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     val modifier2 = Modifier.size(20.dp)
                                     Image(
                                         painter = painterResource(R.drawable.ic_launcher_foreground),
-                                        contentDescription = getString(R.string.contentDescription),
+                                        contentDescription = getString(contentDescription),
                                         modifier = modifier1.then(modifier2)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -174,7 +174,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     Row(modifier = Modifier.padding(all = 8.dp)) {
                                         Image(
                                             painter = painterResource(R.drawable.ic_launcher_background),
-                                            contentDescription = getString(R.string.contentDescription),
+                                            contentDescription = getString(contentDescription),
                                             modifier = Modifier.size(40.dp) // 將圖像大小設置為 40 dp.clip(CircleShape) // 將圖像裁剪成圓形
                                         )
                                         // 在圖像和列之間添加一個水平空間墊片
@@ -202,7 +202,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     colors = colors,
                                     shapes = shapes,
                                     typography = typography,
-                                    rememberCoroutineScope = rememberCoroutineScope
+                                    rememberCoroutineScope = coroutineScope
                                 )
                             }
                             val listText by remember {
@@ -294,14 +294,16 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 DrawOvalDemo(colors = colors)
                                 DrawRectDemo(colors = colors)
                             }
-                            SampleStateButton(style = style)
+                            SampleStateButton(colors = colors, style = style)
                             RememberCoroutineScope(
-                                rememberCoroutineScope = rememberCoroutineScope,
-                                colors = colors
+                                rememberCoroutineScope = coroutineScope,
+                                scaffoldState = scaffoldState,
+                                colors = colors,
+                                style = style
                             )
                             SnapShotFlow(colors = colors, style = style)
                             LazyListStateDemo(colors = colors, style = style)
-                            ReorganizationLoopDemo(coroutineScope = rememberCoroutineScope, colors = colors, style = style)
+                            ReorganizationLoopDemo(coroutineScope = coroutineScope, colors = colors, style = style)
                             val list = listOf(
                                 "Activity Manager",
                                 "Window Manager",
@@ -321,7 +323,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 DerivedStateList(
-                                    coroutineScope = rememberCoroutineScope,
+                                    coroutineScope = coroutineScope,
                                     colors = colors,
                                     style = style,
                                     list = list,
@@ -340,7 +342,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 MoveBoxWhereTapped()
                                 Spacer(modifier = Modifier.width(4.dp))
-                                RouteOne(coroutineScope = rememberCoroutineScope, colors = colors, style = style, navigation)
+                                RouteOne(coroutineScope = coroutineScope, colors = colors, style = style, navigation)
                                 Spacer(modifier = Modifier.width(4.dp))
                             }
                             LaunchedEffect(null, Dispatchers.IO) {
@@ -404,7 +406,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
         Row(modifier = Modifier.padding(all = 8.dp)) {
             Image(
                 painter = painterResource(R.drawable.ic_launcher_foreground),
-                contentDescription = getString(R.string.contentDescription),
+                contentDescription = getString(contentDescription),
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
@@ -734,7 +736,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 //}
 
     @Composable
-    fun SampleStateButton(style: TextStyle) {
+    fun SampleStateButton(colors: Colors, style: TextStyle) {
         var count1 = 1
         var count2 by remember { mutableStateOf(1) }
         val interactionSource = remember { MutableInteractionSource() }
@@ -753,7 +755,6 @@ class MainActivity : ComponentActivity(), SampleInterface {
             val verticalArrangement = Arrangement.Center
             val horizontalAlignment = Alignment.CenterHorizontally
 //            val modifier = Modifier.weight(1.0f)
-            val white = Color.White
             item {
                 Column(
                     verticalArrangement = verticalArrangement,
@@ -762,7 +763,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Text(text = resp, style = style)
                     Button(
                         onClick = { count2++ }) {
-                        Text("$count2", color = white, style = style)
+                        Text("$count2", color = colors.onError, style = style)
                     }
                 }
             }
@@ -774,7 +775,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Text(text = "Normal", style = style)
                     Button(
                         onClick = { count1++ }) {
-                        Text("$count1", color = white, style = style)
+                        Text("$count1", color = colors.onError, style = style)
                     }
                 }
             }
@@ -788,7 +789,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         onClick = { count2-- },
                         interactionSource = interactionSource
                     ) {
-                        Text("$count2", color = white, style = style)
+                        Text("$count2", color = colors.onError, style = style)
                     }
                 }
             }
@@ -801,7 +802,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Button(
                         onClick = { count += 1 }
                     ) {
-                        Text(text = "$count", color = white, style = style)
+                        Text(text = "$count", color = colors.onError, style = style)
                     }
                 }
             }
@@ -814,25 +815,22 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Button(
                         onClick = { count -= 1 }
                     ) {
-                        Text(text = "$count", color = white, style = style)
+                        Text(text = "$count", color = colors.onError, style = style)
                     }
                 }
             }
             item {
-                ProduceStateButton(color = white, style = style)
+                ProduceStateButton(color = colors.onError, style = style)
             }
         }
     }
 
     @Composable
-    fun RememberCoroutineScope(rememberCoroutineScope: CoroutineScope, colors: Colors) {
+    fun RememberCoroutineScope(rememberCoroutineScope: CoroutineScope, scaffoldState: ScaffoldState, colors: Colors, style: TextStyle) {
         // 創建綁定到 RememberCoroutineScope 生命週期的 CoroutineScope
         // `LaunchedEffect` 將取消並重新啟動 `scaffoldState.snackBarHostState` 變化
-        val scaffoldState = rememberScaffoldState()
         val verticalArrangement = Arrangement.Center
         val horizontalAlignment = Alignment.CenterHorizontally
-        val white = Color.White
-        val style = TextStyle(fontSize = 11.sp)
         Scaffold(scaffoldState = scaffoldState, modifier = Modifier.height(60.dp)) {
             Column(
                 verticalArrangement = verticalArrangement,
@@ -853,7 +851,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 }
                             }
                         ) {
-                            Text("SnackBar", color = white, style = style)
+                            Text("SnackBar", color = colors.onError, style = style)
                         }
                     }
                     RememberUpdatedState(colors, style)
@@ -1126,7 +1124,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 with(context) { showToast("❌ ProduceStateExample() Result.Error") }
                 Image(
                     imageVector = Icons.Default.Close,
-                    contentDescription = getString(R.string.contentDescription)
+                    contentDescription = getString(contentDescription)
                 )
             }
             is Result.Success -> {
@@ -1136,7 +1134,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 Image(
                     painterResource(id = image.imageIdRes),
                     modifier = Modifier.size(20.dp),
-                    contentDescription = getString(R.string.contentDescription)
+                    contentDescription = getString(contentDescription)
                 )
             }
         }
@@ -1234,7 +1232,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Image(
                         painter = painterResource(R.drawable.ic_launcher_foreground),
                         contentScale = ContentScale.Fit,
-                        contentDescription = getString(R.string.contentDescription),
+                        contentDescription = getString(contentDescription),
                         modifier = Modifier.offset {
                             IntOffset(
                                 x = listState.firstVisibleItemScrollOffset / 2,
@@ -1260,7 +1258,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 item {
                     Image(
                         painter = painterResource(R.drawable.ic_launcher_foreground),
-                        contentDescription = getString(R.string.contentDescription),
+                        contentDescription = getString(contentDescription),
                         modifier = Modifier
                             .fillMaxWidth()
                             .onSizeChanged { size ->
@@ -1662,13 +1660,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun PageJumpSamples(msg: Message) {
-        val mNavController = rememberNavController()
-        NavHost(navController = mNavController, startDestination = "MainActivity") {
+        val navController = rememberNavController()
+        val scaffoldState = rememberScaffoldState()
+        val coroutineScope = rememberCoroutineScope()
+        NavHost(navController = navController, startDestination = "MainActivity") {
             composable(
                 route = "MainActivity",
             ) {
-                ActivityMain(msg = msg, navigation = {
-                    mNavController.navigate(route = "OneActivity?name=Slash&age=34") {
+                ActivityMain(msg = msg, scaffoldState = scaffoldState, coroutineScope = coroutineScope, navigation = {
+                    navController.navigate(route = "OneActivity?name=Slash&age=34") {
                         launchSingleTop = true
                     }
                 })
@@ -1686,64 +1686,271 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     defaultValue = -1
                 })
             ) {
-                ActivityOne(it.arguments?.getString("name") ?: "Tony", it.arguments?.getInt("age") ?: -1) {
-                    mNavController.popBackStack()
+                ActivityOne(it.arguments?.getString("name") ?: "Tony", it.arguments?.getInt("age") ?: -1, scaffoldState = scaffoldState, coroutineScope = coroutineScope) {
+                    navController.popBackStack()
                 }
             }
         }
     }
 
     @Composable
-    fun ActivityMain(msg: Message, navigation: () -> Unit) {
-        MessageCard(msg = msg, navigation = navigation)
+    fun ActivityMain(msg: Message, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, navigation: () -> Unit) {
+        MessageCard(msg = msg, scaffoldState = scaffoldState, coroutineScope = coroutineScope, navigation = navigation)
     }
 
+    @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun ActivityOne(name: String, age: Int, navigation: () -> Unit) {
+    fun ActivityOne(name: String, age: Int, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, navigation: () -> Unit) {
+        val shapes = MaterialTheme.shapes
+        val colors = MaterialTheme.colors
+        val typography = MaterialTheme.typography
         val toolbarHeight = 200.dp // 定义 ToolBar 的高度
         val maxUpPx = with(LocalDensity.current) { toolbarHeight.roundToPx().toFloat() - 56.dp.roundToPx().toFloat() } // ToolBar 最大向上位移量 56.dp 参考自 androidx.compose.material AppBar.kt 里面定义的 private val AppBarHeight = 56.dp
         val minUpPx = 0f // ToolBar 最小向上位移量
         val toolbarOffsetHeightPx = remember { mutableStateOf(0f) } // 偏移折叠工具栏上移高度
+        val modalDrawer = rememberDrawerState(DrawerValue.Closed)
+        val bottomDrawer = rememberBottomDrawerState(BottomDrawerValue.Closed)
+        val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
         Scaffold(
+            scaffoldState = scaffoldState,
             topBar = {
-                TopAppBar(navigationIcon = {
+                TopAppBar(
+                    navigationIcon = {
+                    IconButton(
+                          onClick = {
+                             coroutineScope.launch(Dispatchers.IO) {
+                             scaffoldState.drawerState.apply {
+                                 if (isClosed) open() else close()
+                              }
+                           }
+                        }) {
+                            Icon(tint = colors.onError,
+                                imageVector = Icons.Default.Home,
+                                contentDescription = getString(contentDescription)
+                            )
+                        }
                     Icon(
+                        tint = colors.onError,
                         imageVector = Icons.Default.AccountBox,
-                        contentDescription = null
+                        contentDescription = getString(contentDescription)
                     )
                 }, title = {
-                    Text(text = "ActivityOne")
+                    Text(
+                        text = "ActivityOne",
+                        color = colors.onError,
+                    )
                 }, actions = {
-                    Icon(imageVector = Icons.Default.Edit, contentDescription = null)
-                    Text(text = "編輯")
+                        Icon(tint = colors.onError, imageVector = Icons.Default.Edit, contentDescription = getString(contentDescription))
+                        Text(
+                            text = "編輯",
+                            color = colors.onError,
+                            modifier = Modifier.clickable {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                }
+                            }
+                        )
                 })
             },
             bottomBar = {
-                BottomAppBar {
-                    Text(text = "Bottom AppBar")
+                BottomAppBar(cutoutShape = MaterialTheme.shapes.small.copy(CornerSize(percent = 50))) {
+                    Text(
+                        text = "Bottom AppBar",
+                        color = colors.onError,
+                    )
                     Spacer(Modifier.weight(1f, true))
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Filled.Favorite, getString(R.string.contentDescription))
+                    IconButton(
+                        onClick = {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            // 默認 SnackBarDuration.Short
+                            val result = scaffoldState.snackbarHostState.showSnackbar(message = "SnackBar", actionLabel = "Cancel", duration = SnackbarDuration.Indefinite)
+                            when (result) {
+                                SnackbarResult.ActionPerformed -> {
+
+                                }
+                                SnackbarResult.Dismissed -> {
+
+                                }
+                            }
+                        }
+                    }) {
+                        Icon(Icons.Filled.Favorite, getString(contentDescription), tint = colors.onError)
                     }
                 }
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { /* ... */ }) {
-                    /* FAB content */
-                }
+                ExtendedFloatingActionButton(
+                    text = { Text("Show") },
+                    onClick = {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            scaffoldState.drawerState.apply {
+                                if (isClosed) open() else close()
+                            }
+                        }
+                    }
+                )
             },
-            // Defaults to false
-            isFloatingActionButtonDocked = true,
+            drawerContent = {
+                Text("Drawer Header", color = colors.onError, modifier = Modifier.padding(16.dp), fontSize = 24.sp)
+                Divider()
+                Text("Drawer List", color = colors.onError, modifier = Modifier.padding(16.dp), fontSize = 18.sp)
+            },
+            drawerGesturesEnabled = true,
+            isFloatingActionButtonDocked = true, // 默認 false
+            floatingActionButtonPosition = FabPosition.Center,
         ) {
             Column(modifier = Modifier.padding(it)) {
-                Text(text = "我是${name}今年${age}歲")
-                Button(onClick = {
-                    navigation()
-                }) {
-                    Text(text = "返回")
+                CompositionLocalExample()
+                Row {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "我是${name}今年${age}歲")
+                        Button(onClick = {
+                            navigation()
+                        }) {
+                            Text(text = "返回", color = Color.Red)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Column {
+                        Surface(color = colors.onPrimary, modifier = Modifier
+                            .height(20.dp)
+                            .clickable {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    modalDrawer.apply {
+                                        if (isClosed) open() else close()
+                                    }
+                                }
+                            }) {
+                            Text(text = "Modal Drawer", color = Color.Red, fontSize = 12.sp)
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Surface(color = colors.onPrimary, modifier = Modifier
+                            .height(20.dp)
+                            .clickable {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    bottomDrawer.apply {
+                                        if (isClosed) open() else close()
+                                    }
+                                }
+                            }) {
+                            Text(text = "Bottom Drawer", color = Color.Red, fontSize = 12.sp)
+                        }
+//                        Surface(color = colors.onPrimary, modifier = Modifier
+//                            .height(20.dp)
+//                            .clickable {
+//                                coroutineScope.launch(Dispatchers.IO) {
+//                                    sheetState.apply {
+//                                        if (isVisible) sheetState.hide() else sheetState.show()
+//                                    }
+//                                }
+//                            }) {
+//                            Text(text = "Bottom Sheet Scaffold", color = Color.Red, fontSize = 12.sp)
+//                        }
+//                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                }
+                ModalDrawer(
+                    modifier = Modifier
+                        .width(800.dp)
+                        .height(60.dp),
+                    drawerState = modalDrawer,
+                    drawerContent = {
+                        Text("Modal Drawer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                        Divider()
+                        Row{
+                         repeat(5) {
+                             Text("Modal Drawer List ", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+                         }
+                        }
+                    },
+                ) {
+
+                }
+                BottomDrawer(
+                    drawerState = bottomDrawer,
+                    drawerContent = {
+                        Text("Bottom Drawer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                        Divider()
+                        repeat(20) {
+                            Text("Bottom Drawer List", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+                        }
+                    }
+                ) {
+
+                }
+//                ModalBottomSheetLayout(
+//                    sheetState = sheetState,
+//                    sheetContent = { //这里显示底部弹窗内容
+//                        Text("Bottom Sheet Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+//                        Divider()
+//                        Text("Bottom Sheet List", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+////                        repeat(10) {
+////                            Text("Bottom Sheet List", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+////                        }
+//                }, content = { //处理后退事件，显示和隐藏必须用协程执行
+//                    BackHandler(sheetState.isVisible) {
+//                        coroutineScope.launch {
+//                            sheetState.hide()
+//                        }
+//                    } //显示页面内容
+//                },
+// //                    sheetPeekHeight = 128.dp,
+////                    sheetGesturesEnabled = true
+//                )
+
+//                ModalBottomSheetLayout(
+//                    sheetState = sheetState,
+//                    sheetContent = {
+//                        Text("Bottom Sheet Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+//                        Divider()
+//                        repeat(2) {
+//                            Text("Bottom Sheet List", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+//                        }
+//                    },
+////                    sheetPeekHeight = 128.dp,
+////                    sheetGesturesEnabled = true
+//                ) {
+//
+//                }
+            }
+        }
+    }
+
+    @Composable
+    fun CompositionLocalExample() {
+        MaterialTheme { // MaterialTheme 將 ContentAlpha.high 設置為默認值
+            Column {
+                Text("使用 MaterialTheme 提供的 alpha", fontSize = 16.sp)
+                CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
+                    Row {
+                        Text("為LocalContentAlpha 提供的中值", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("This Text也使用中值", fontSize = 14.sp)   
+                    }
+                    Row {
+                        CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.disabled) {
+                            DescendantExample()
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        QuantityString(1)
+                    }
                 }
             }
         }
+    }
+
+    @Composable
+    fun DescendantExample() {
+        // CompositionLocalProviders 也適用於可組合函數
+        Text("此文本現在使用禁用的 alpha", fontSize = 13.sp)
+    }
+
+    @Composable
+    fun QuantityString(count: Int) {
+        // 從 LocalContext 的當前值獲取 `resources`
+        val text = remember(resources, count) {
+            resources.getQuantityString(R.plurals.numberOfSongsAvailable, count, count)
+        }
+        Text(text = text)
     }
 
     @Composable
