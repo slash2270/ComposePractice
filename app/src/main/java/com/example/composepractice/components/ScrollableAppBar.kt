@@ -2,8 +2,11 @@ package com.example.composepractice.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.Colors
 import androidx.compose.material.Icon
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -20,27 +23,24 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-
 
 @Composable
 fun ScrollableAppBar(
     modifier: Modifier = Modifier,
     title: String = stringResource(id = com.example.composepractice.R.string.app_name), //默认为应用名
-    navigationIcon: @Composable () -> Unit =
-        {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "ArrowBack", tint = Color.White)
-        }, //默认为返回键
     @DrawableRes backgroundImageId: Int, // 背景图片
     scrollableAppBarHeight: Dp,
-    toolbarOffsetHeightPx: MutableState<Float> //向上偏移量
+    toolbarOffsetHeightPx: MutableState<Float>, //向上偏移量
+    coroutineScope: CoroutineScope,
+    navigation: () -> Unit
 ) {
-
     // 应用栏最大向上偏移量
     val maxOffsetHeightPx = with(LocalDensity.current) { scrollableAppBarHeight.roundToPx().toFloat() - toolBarHeight.roundToPx().toFloat() }
     // Title 偏移量参考值
     val titleOffsetWidthReferenceValue = with(LocalDensity.current) { navigationIconSize.roundToPx().toFloat() }
-
     Box(modifier = Modifier
         .height(scrollableAppBarHeight)
         .offset {
@@ -48,27 +48,29 @@ fun ScrollableAppBar(
         }
         .fillMaxWidth()
     ) {
-        Image(painter = painterResource(id = backgroundImageId), contentDescription = "background", contentScale = ContentScale.FillBounds)
-
+        Image(painter = painterResource(id = backgroundImageId), contentDescription = "background", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxSize())
         // 自定义应用栏
         Row(
-            modifier = modifier
-                .offset {
-                    IntOffset(
-                        x = 0,
-                        y = -toolbarOffsetHeightPx.value.roundToInt() //保证应用栏是始终不动的
-                    )
-                }
-                .height(toolBarHeight)
-                .fillMaxWidth(),
+            modifier = modifier.offset {
+                IntOffset(
+                    x = 0,
+                    y = -toolbarOffsetHeightPx.value.roundToInt() //保证应用栏是始终不动的
+                )
+            }.height(toolBarHeight).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // 导航图标
             Box(modifier = Modifier.size(navigationIconSize),contentAlignment = Alignment.Center) {
-                navigationIcon()
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = null, Modifier.clickable {
+                        coroutineScope.launch {
+                            navigation()
+                        }
+                    }
+                )
             }
         }
-
         Box(
             modifier = Modifier
                 .height(toolBarHeight) //和ToolBar同高
@@ -83,7 +85,7 @@ fun ScrollableAppBar(
             contentAlignment = Alignment.CenterStart
         ) {
             Text(text = title,
-                color = Color.White,
+                color = Color.Black,
                 modifier = Modifier.padding(start = 20.dp).matchParentSize(), // 使用 matchParentSize 修饰符保证不影响父 Box尺寸
                 fontSize = 20.sp
             )
