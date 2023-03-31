@@ -16,13 +16,18 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.*
+import androidx.compose.material.SliderDefaults.DisabledTickAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
@@ -42,19 +47,30 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -62,17 +78,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import coil.ImageLoader
+import coil.decode.SvgDecoder
 import com.example.composepractice.Constants.Companion.CONTENT_DESCRIPTION
 import com.example.composepractice.Constants.Companion.ROUTE_FOUR
 import com.example.composepractice.Constants.Companion.ROUTE_MAIN
 import com.example.composepractice.Constants.Companion.ROUTE_ONE
-import com.example.composepractice.Constants.Companion.ROUTE_TWO
 import com.example.composepractice.Constants.Companion.ROUTE_THREE
+import com.example.composepractice.Constants.Companion.ROUTE_TWO
 import com.example.composepractice.R
 import com.example.composepractice.components.ScrollableAppBar
 import com.example.composepractice.ui.theme.ComposePracticeTheme
 import com.example.composepractice.ui.theme.ComposeTutorialTheme
 import com.example.composepractice.ui.theme.Shapes
+import com.skydoves.landscapist.coil.CoilImage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -82,6 +101,7 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.ranges.coerceAtLeast
 import kotlin.reflect.KProperty
+
 
 interface SampleInterface {
     fun log(message: String)
@@ -628,8 +648,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun SaverScreen(style: TextStyle) {
-        val selected =
-            rememberSaveable(stateSaver = saver) { mutableStateOf(ParcelizeBean("TW", "Saver")) }
+        val selected = rememberSaveable(stateSaver = saver) { mutableStateOf(ParcelizeBean("TW", "Saver")) }
         RestoreStateText(text = selected.value.value, style = style)
     }
 
@@ -1826,9 +1845,20 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         color = colors.onError,
                     )
                 }, actions = {
-                        Icon(tint = colors.onError, imageVector = Icons.Default.Edit, contentDescription = getString(CONTENT_DESCRIPTION))
+                        IconButtonDemo(
+                            content = {
+                                IconButton(onClick = {
+                                }) {
+                                    Icon(Icons.Filled.Info, getString(CONTENT_DESCRIPTION), tint = Color.White)
+                                }
+                            },
+                            onClick = {
+
+                            })
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
                         Text(
-                            text = "編輯",
+                            text = "更多",
                             color = colors.onError,
                             modifier = Modifier.clickable {
                                 coroutineScope.launch(Dispatchers.IO) {
@@ -1940,15 +1970,50 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                 }
+                Row(modifier = Modifier.padding(4.dp, 0.dp)) {
+                    Surface(elevation = elevations.default, color = Color.Transparent) {
+                        InversionOfControl(coroutineScope = coroutineScope, colors = colors)
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AlertDialogSample(colors = colors)
+                }
+                Row(modifier = Modifier.padding(4.dp, 0.dp)) {
+                    ButtonDemo(colors = colors)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    ButtonStateDemo(colors = colors)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    CardDemo()
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Column {
+                        ImageDemo()
+                    }
+                }
+                Row {
+                    CoilImageDemo()
+                    SliderDemo(colors = colors)
+                }
+                TextDemo()
+                Row {
+                    ClickTextDemo()
+                    Spacer(modifier = Modifier.width(4.dp))
+                    TextEmphasisEffect()
+                }
+                BasicTextFieldDemo()
+                ListColumnLayout()
+
                 ModalDrawer(
-                    modifier = Modifier.width(800.dp).height(60.dp),
+                    modifier = Modifier
+                        .width(800.dp)
+                        .height(60.dp),
                     drawerState = modalDrawer,
                     drawerContent = {
                         Text("Modal Drawer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
                         Divider()
                         Row{
                          repeat(5) {
-                             Text("Modal Drawer List ", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+                             Text("Modal Drawer List ", color = colors.onError, modifier = Modifier
+                                 .padding(4.dp)
+                                 .clickable { }, fontSize = 10.sp)
                          }
                        }
                     },
@@ -1961,11 +2026,75 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         Text("Bottom Drawer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
                         Divider()
                         repeat(20) {
-                            Text("Bottom Drawer List", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+                            Text("Bottom Drawer List", color = colors.onError, modifier = Modifier
+                                .padding(4.dp)
+                                .clickable { }, fontSize = 10.sp)
                         }
                     }
                 ) {
 
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun LazyListLayout(
+        modifier: Modifier = Modifier,
+        content: @Composable () -> Unit
+    ) {
+        Layout(
+            modifier = modifier,
+            content = content
+        ) { measurables, constraints ->
+            val placeables = measurables.map { measurable ->
+                measurable.measure(constraints)
+            }
+            var yPosition = 0
+            layout(constraints.maxWidth, constraints.maxHeight) {
+                placeables.forEach { placeable ->
+                    placeable.placeRelative(x = 0, y = yPosition)
+                    yPosition += placeable.height
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun ListColumnLayout(){
+        CustomColumnLayout{
+            repeat(7) {
+                Text(text = "Layout", fontSize = 12.sp)
+            }
+        }
+    }
+    
+    @Composable
+    fun CustomColumnLayout(
+        modifier: Modifier = Modifier,
+        content: @Composable () -> Unit
+    ) {
+        Layout(
+            modifier = modifier,
+            content = content
+        ) { measurables: List<Measurable>,
+            constraints: Constraints ->
+            // placeables 是经过测量的子元素，它拥有自身的尺寸值
+            val placeables = measurables.map { measurable ->
+                // 测量所有子元素，这里不编写任何自定义测量逻辑，只是简单地
+                // 调用 Measurable 的 measure 函数并传入 constraints
+                measurable.measure(constraints)
+            }
+            val width = placeables.sumOf { it.height }// 根据 placeables 计算得出
+            val height = placeables.maxOf { it.width }// 根据 placeables 计算得出
+            // 报告所需的尺寸
+            layout(width, height) {
+                var y = 0
+                placeables.forEach { placeable ->
+                    //通过遍历将每个项目放置到最终的预期位置
+                    placeable.placeRelative(x = 0, y = y)
+                    // 按照所放置项目的高度增加 y 坐标值
+                    y += placeable.height
                 }
             }
         }
@@ -2004,37 +2133,589 @@ class MainActivity : ComponentActivity(), SampleInterface {
 //        }
 //    }
 
+    @Composable
+    fun InversionOfControl(
+        text: String = "InversionOfControl",
+        coroutineScope: CoroutineScope,
+        colors: Colors
+    ) {
+        ReusablePartOfTheScreen(
+            colors = colors,
+            content = {
+                Text(text, color = colors.onError, fontSize = 12.sp, modifier = Modifier
+                    .padding(4.dp)
+                    .clickable {
+                        coroutineScope.launch(Dispatchers.IO) {
 
-//    @Composable
-//    fun MyComposable(myViewModel: MyViewModel = viewModel()) {
-//        // ...
-//        ReusablePartOfTheScreen(
-//            content = {
-//                Button(
-//                    onClick = {
-//                        myViewModel.loadData()
+                        }
+                    })
+            }
+        )
+    }
+
+    @Composable
+    fun ReusablePartOfTheScreen(content: @Composable () -> Unit, colors: Colors) {
+        Surface(color = colors.onSecondary) {
+            content()
+        }
+    }
+
+    @Composable
+    fun AlertDialogSample(colors: Colors) {
+        val openDialog1 = remember { mutableStateOf(false) }
+        val openDialog2 = remember { mutableStateOf(false) }
+        val openDialog3 = remember { mutableStateOf(false) }
+
+        Row {
+            Text("AlertDialogOne", color = colors.secondaryVariant, fontSize = 12.sp, modifier = Modifier.clickable {
+                openDialog1.value = true
+            })
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("AlertDialogTwo", color = colors.secondaryVariant, fontSize = 12.sp, modifier = Modifier.clickable {
+                openDialog2.value = true
+            })
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("LinearProgressDialog", color = colors.secondaryVariant, fontSize = 12.sp, modifier = Modifier.clickable {
+                openDialog3.value = true
+            })
+        }
+
+        if(openDialog1.value) openDialog1.value = alertDialogOne(openDialog = openDialog1, colors = colors)
+        if(openDialog2.value) openDialog2.value = alertDialogTwo(openDialog = openDialog2, colors = colors)
+        if(openDialog3.value) openDialog3.value = linearProgressDialog(openDialog = openDialog3, colors = colors)
+    }
+
+    @Composable
+    fun alertDialogOne(openDialog: MutableState<Boolean>, colors: Colors): Boolean {
+        AlertDialog(
+            backgroundColor = colors.primaryVariant,
+//            contentColor = Color.Gray,
+            onDismissRequest = { // 當用戶點擊對話框以外的地方或者按下系統返回鍵將會執行的代碼
+                openDialog.value = false
+            },
+            title = {
+                Text(
+                    text = "開啟位置服務",
+                    color = colors.onSecondary,
+                    fontWeight = FontWeight.W700,
+                    style = MaterialTheme.typography.h6
+                )
+            },
+            text = {
+                Text(
+                    text = "這將意味著，我們會給您提供精準的位置服務，並且您將接受關於您訂閱的位置信息",
+                    color = colors.onError,
+                    fontSize = 16.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        openDialog.value = false
+                    },
+                ) {
+                    Text(
+                        "確認",
+                        fontWeight = FontWeight.W700,
+                        style = MaterialTheme.typography.button
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        openDialog.value = false
+                    }
+                ) {
+                    Text(
+                        "取消",
+                        fontWeight = FontWeight.W700,
+                        style = MaterialTheme.typography.button
+                    )
+                }
+            }
+        )
+        return openDialog.value
+    }
+
+    @Composable
+    fun alertDialogTwo(openDialog: MutableState<Boolean>, colors: Colors): Boolean {
+        AlertDialog(
+            backgroundColor = colors.primaryVariant,
+//            contentColor = Color.Gray,
+            onDismissRequest = {
+                openDialog.value = false
+            },
+            title = {
+                Text(
+                    text = "開啟位置服務",
+                    color = colors.surface,
+                    fontWeight = FontWeight.W700,
+                    style = MaterialTheme.typography.h6
+                )
+            },
+            text = {
+                Text(
+                    text = "這將意味著，我們會給您提供精準的位置服務，並且您將接受關於您訂閱的位置信息",
+                    color = colors.onError,
+                    fontSize = 16.sp
+                )
+            },
+            buttons = {
+                Row(
+                    modifier = Modifier.padding(all = 8.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { openDialog.value = false }
+                    ) {
+                        Text("必須接受！")
+                    }
+                }
+            }
+        )
+        return openDialog.value
+    }
+
+    @Composable
+    fun linearProgressDialog(openDialog: MutableState<Boolean>, colors: Colors): Boolean {
+        Dialog(
+            onDismissRequest = { openDialog.value = false }
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(300.dp, 60.dp)
+                    .background(colors.onError),
+                contentAlignment = Alignment.Center
+            ) {
+                Column {
+                    LinearProgressIndicator()
+                    Text("加載中ing...")
+                }
+            }
+        }
+        return openDialog.value
+    }
+
+    @Composable
+    fun ButtonDemo(colors: Colors) {
+        Button(
+            modifier = Modifier.size(100.dp, 40.dp),
+            onClick = {
+
+        }) {
+            Icon(
+                // Material 庫中的圖標，有 Filled, Outlined, Rounded, Sharp, Two Tone 等
+                Icons.Filled.Favorite,
+                tint = colors.onError,
+                contentDescription = null,
+                modifier = Modifier.size(ButtonDefaults.IconSize)
+            )
+            // 添加間隔
+            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+            Text("喜歡", color = colors.onError, fontSize = 12.sp)
+        }
+    }
+
+    @Composable
+    fun ButtonStateDemo(colors: Colors) {
+        // 獲取按鈕的狀態
+        val interactionState = remember { MutableInteractionSource() }
+        // 使用 Kotlin 的解構方法
+        val (text, textColor, buttonColor) = when {
+            interactionState.collectIsPressedAsState().value  -> ButtonState("Just Pressed", Color.Red, colors.onSecondary)
+            else -> ButtonState( "Just Button", colors.onError, Color.Red)
+        }
+        Button(
+            elevation = null,
+            interactionSource = interactionState,
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(backgroundColor = buttonColor),
+            modifier = Modifier
+                .width(IntrinsicSize.Min)
+                .height(IntrinsicSize.Min),
+            onClick = {},
+        ) {
+            Text(
+                text = text, color = textColor, fontSize = 12.sp
+            )
+        }
+    }
+
+    @Composable
+    fun CardDemo() {
+        Card(
+            modifier = Modifier
+                .size(100.dp)
+                .padding(5.dp)
+                .clickable {},
+            // 設置點擊波紋效果，注意如果 CardDemo() 函數不在 MaterialTheme 下調用 將無法顯示波紋效果
+            elevation = 10.dp // 設置陰影
+        ) {
+            Column(
+                modifier = Modifier.padding(15.dp) // 內邊距
+            ) {
+                Text(
+                    buildAnnotatedString {
+                        append("歡迎來到 ")
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.W900, color = Color(0xFF4552B8))
+                        ) {
+                            append("Jetpack Compose 博物館")
+                        }
+                    },
+                    fontSize = 12.sp
+                )
+                Text(
+                    buildAnnotatedString {
+                        append("你現在觀看的章節是 ")
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.W900)) {
+                            append("Card")
+                        }
+                    },
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun IconButtonDemo(
+        onClick: () -> Unit,
+        modifier: Modifier = Modifier,
+        enabled: Boolean = true,
+        interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+        content: @Composable () -> Unit
+    ) {
+        Box(
+            modifier = modifier
+                .clickable(
+                    onClick = onClick,
+                    enabled = enabled,
+                    role = Role.Button,
+                    interactionSource = interactionSource,
+                    indication = rememberRipple(bounded = false, radius = 10.dp)
+                )
+                .then(Modifier.size(24.dp)),
+            contentAlignment = Alignment.Center
+        ) { content() }
+    }
+
+    @Composable
+    fun ImageDemo() {
+        Surface(
+            shape = CircleShape,
+            border = BorderStroke(5.dp, Color.Gray)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_background),
+                contentDescription = null,
+                modifier = Modifier.size(60.dp),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+
+    @Composable
+    fun CoilImageDemo() {
+        val context = LocalContext.current
+        val imageLoader = ImageLoader.Builder(context)
+            .componentRegistry {
+                add(SvgDecoder(context))
+            }
+            .build()
+        var flag by remember { mutableStateOf(false) }
+        val size by animateDpAsState(targetValue = if(flag) 450.dp else 50.dp)
+        CoilImage(
+            imageModel = "https://coil-kt.github.io/coil/images/coil_logo_black.svg",
+            contentDescription = null,
+            modifier = Modifier
+                .size(size)
+                .clickable(
+                    onClick = {
+                        flag = !flag
+                    },
+                    indication = null,
+                    interactionSource = MutableInteractionSource()
+                ),
+            imageLoader = imageLoader
+        )
+    }
+
+    @Composable
+    fun SliderDemo(colors: Colors) { // 圆圈的颜色
+        var progress by remember{ mutableStateOf(0f)}
+        // 滑條未經過部分的默認 alpha 值
+        val inactiveTrackAlpha = 0.24f
+        // 當滑條被禁用的狀態下已經過部分的默認 alpha 值
+        val disabledInactiveTrackAlpha = 0.12f
+        // 當滑條被禁用的狀態下未經過部分的默認 alpha 值
+        val disabledActiveTrackAlpha = 0.32f
+        // 在滑條上方顯示的刻度的默認的 alpha 值
+        val tickAlpha = 0.54f
+        // 當刻度線被禁用時，默認的 alpha 值
+        val activeTickColor = colors.onSurface
+        val activeTrackColor = colors.primaryVariant
+        val disabledInactiveTrackColor = colors.secondaryVariant
+        val disabledActiveTrackColor = colors.onSecondary
+        Slider(
+            value = progress,
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colors.primary,
+                disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
+        activeTrackColor = MaterialTheme.colors.primary,
+        inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
+        disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
+        disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
+        activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
+        inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
+        disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
+        disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
+            ),
+            onValueChange = {
+                progress = it
+            },
+        )
+    }
+
+    @Composable
+    fun TextDemo() { // 圆圈的颜色
+        Text(
+            text = "你好呀陌生人，這是一個標題，不是很長，因為我想不出其他什麼比較好的標題了".repeat(2),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Left,
+            fontFamily = FontFamily.Serif,
+            style = TextStyle(
+                fontWeight = FontWeight.W900, //设置字体粗细
+                fontSize = 20.sp,
+                letterSpacing = 7.sp
+            ),
+            modifier = Modifier.clickable(
+                onClick = { // 通知事件
+                    Toast.makeText(applicationContext, "你點擊了此文本", Toast.LENGTH_LONG).show()
+                },
+                indication = null,
+                interactionSource = MutableInteractionSource()
+            )
+        )
+    }
+
+    @Composable
+    fun ClickTextDemo() { // 圆圈的颜色
+        val annotatedText = buildAnnotatedString {
+            append("勾選即代表同意")
+            pushStringAnnotation(
+                tag = "tag",
+                annotation = "一個用戶協議BLABLABLA"
+            )
+            withStyle(
+                style = SpanStyle(
+                    color = Color(0xFF0E9FF2),
+                    fontWeight = FontWeight.Bold,
+                )
+            ) {
+                append("用戶協議")
+            }
+            pop()
+        }
+        ClickableText(
+            text = annotatedText,
+            onClick = { offset ->
+                annotatedText.getStringAnnotations(
+                    tag = "tag", start = offset,
+                    end = offset
+                ).firstOrNull()?.let { annotation ->
+                    showToast("你已經點到 ${annotation.item} 啦")
+                }
+            },
+            style = TextStyle(fontSize = 11.sp)
+        )
+    }
+
+    @Composable
+    fun TextEmphasisEffect() {
+        Row{
+            // 将内部 Text 组件的 alpha 强调程度设置为高
+            // 注意: MaterialTheme 已经默认将强调程度设置为 high
+            CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
+                Text("high Alpha", fontSize = 12.sp)
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            // 將內部 Text 組件的 alpha 強調程度設置為中
+            CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
+                Text("medium Alpha", fontSize = 12.sp)
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            // 將內部 Text 組件的 alpha 強調程度設置為禁用
+            CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.disabled) {
+                Text("disabled Alpha", fontSize = 12.sp)
+            }
+        }
+    }
+
+    @Composable
+    fun BasicTextFieldDemo() {
+        var text by remember{mutableStateOf("")}
+        var passwordHidden by remember{ mutableStateOf(false)}
+        Box(modifier = Modifier
+            .size(300.dp, 120.dp)) {
+            TextField(
+                value = text,
+                onValueChange = {
+                    text = it
+                },
+                leadingIcon = {
+                    Icon(Icons.Filled.Search, null)
+                },
+                colors = TextFieldDefaults.textFieldColors(
+                    textColor = Color(0xFF0079D3),
+                    backgroundColor = Color.Transparent
+                ),
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            passwordHidden = !passwordHidden
+                        }
+                    ){
+                        Icon(painterResource(id = R.drawable.ic_launcher_foreground), null)
+                    }
+                },
+                label = {
+                    Text("密碼")
+                },
+                singleLine = true,
+                visualTransformation = if(passwordHidden) PasswordVisualTransformation() else VisualTransformation.None
+            )
+        }
+//        var text by remember { mutableStateOf("") }
+//        Box(
+//            modifier = Modifier.fillMaxSize().background(Color(0xFFD3D3D3)),
+//            contentAlignment = Alignment.Center
+//        ) {
+//            BasicTextField(
+//                value = text,
+//                onValueChange = {
+//                    text = it
+//                },
+//                modifier = Modifier
+//                    .background(Color.White, CircleShape)
+//                    .height(35.dp)
+//                    .fillMaxWidth(),
+//                decorationBox = { innerTextField ->
+//                    Row(
+//                        verticalAlignment = Alignment.CenterVertically,
+//                        modifier = Modifier.padding(horizontal = 10.dp)
+//                    ) {
+//                        IconButton(
+//                            onClick = { }
+//                        ) {
+//                            Icon(painterResource(id = R.drawable.ic_launcher_foreground), getString(CONTENT_DESCRIPTION))
+//                        }
+//                        Box(
+//                            modifier = Modifier.weight(1f),
+//                            contentAlignment = Alignment.CenterStart
+//                        ) {
+//                            innerTextField()
+//                        }
+//                        IconButton(
+//                            onClick = { },
+//                        ) {
+//                            Icon(Icons.Filled.Send, null)
+//                        }
 //                    }
-//                ) {
-//                    Text("Confirm")
 //                }
-//            }
-//        )
-//    }
-//
-//    @Composable
-//    fun ReusablePartOfTheScreen(content: @Composable () -> Unit) {
-//        Column {
-//            // ...
-//            content()
+//            )
 //        }
-//    }
+//        var text by remember { mutableStateOf("") }
+//        Box(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .background(Color(0xFFD3D3D3)),
+//            contentAlignment = Alignment.Center
+//        ) {
+//            BasicTextField(
+//                value = text,
+//                onValueChange = {
+//                    text = it
+//                },
+//                modifier = Modifier
+//                    .background(Color.White)
+//                    .fillMaxWidth(),
+//                decorationBox = { innerTextField ->
+//                    Column(
+//                        modifier = Modifier.padding(vertical = 10.dp)
+//                    ) {
+//                        Row(
+//                            verticalAlignment = Alignment.CenterVertically,
+//                        ) {
+//                            IconButton(onClick = {}) {
+//                                Icon(
+//                                    painterResource(id = R.drawable.ic_launcher_background),
+//                                    contentDescription = null
+//                                )
+//                            }
+//                            IconButton(onClick = {}) {
+//                                Icon(
+//                                    painterResource(id = R.drawable.ic_launcher_background),
+//                                    contentDescription = null
+//                                )
+//                            }
+//                            IconButton(onClick = {}) {
+//                                Icon(
+//                                    painterResource(id = R.drawable.ic_launcher_background),
+//                                    contentDescription = null
+//                                )
+//                            }
+//                            IconButton(onClick = {}) {
+//                                Icon(
+//                                    painterResource(id = R.drawable.ic_launcher_background),
+//                                    contentDescription = null
+//                                )
+//                            }
+//                        }
+//                        Box(
+//                            modifier = Modifier.padding(horizontal = 10.dp)
+//                        ) {
+//                            innerTextField()
+//                        }
+//                        Row(
+//                            modifier = Modifier.fillMaxWidth(),
+//                            verticalAlignment = Alignment.CenterVertically,
+//                            horizontalArrangement = Arrangement.End
+//                        ) {
+//                            TextButton(onClick = { /*TODO*/ }) {
+//                                Text("Send")
+//                            }
+//                            Spacer(Modifier.padding(horizontal = 10.dp))
+//                            TextButton(onClick = { /*TODO*/ }) {
+//                                Text("Close")
+//                            }
+//                        }
+//                    }
+//                }
+//            )
+//        }
+    }
+
+
+
+
+
+
 
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun ActivityTwo(coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit, ) {
+    fun ActivityTwo(
+        coroutineScope: CoroutineScope,
+        colors: Colors,
+        shapes: Shapes,
+        typography: Typography,
+        navigation: () -> Unit
+    ) {
         val scaffoldState = rememberBottomSheetScaffoldState()
-        val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
+        val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, animationSpec = tween(1000))
         BottomSheetScaffold(
             scaffoldState = scaffoldState,
             sheetContent = {
@@ -2116,7 +2797,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         Text("Bottom Sheet Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
                         Divider()
                         repeat(20) {
-                            Text("Bottom Sheet List", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+                            Text("Bottom Sheet List", color = colors.onError, modifier = Modifier
+                                .padding(4.dp)
+                                .clickable { }, fontSize = 10.sp)
                         }
                     }, content = { //处理后退事件，显示和隐藏必须用协程执行
                         BackHandler(sheetState.isVisible) {
@@ -2166,14 +2849,18 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 Text("BackLayer Header", color = colors.onPrimary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
                 Divider()
                 repeat(20) {
-                    Text("BackLayer List", color = colors.onPrimary, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+                    Text("BackLayer List", color = colors.onPrimary, modifier = Modifier
+                        .padding(4.dp)
+                        .clickable { }, fontSize = 10.sp)
                 }
             },
             frontLayerContent = {
                 Text("BackLayer Header", color = colors.onSecondary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
                 Divider()
                 repeat(10) {
-                    Text("BackLayer List", color = colors.onSecondary, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+                    Text("BackLayer List", color = colors.onSecondary, modifier = Modifier
+                        .padding(4.dp)
+                        .clickable { }, fontSize = 10.sp)
                 }
             },
             peekHeight = 120.dp,
@@ -2201,6 +2888,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
             }
         }
+        var selectedItem by remember { mutableStateOf(0) }
+        val listTitle = listOf("主頁", "喜歡", "設置")
+        val listIcon = listOf(Icons.Filled.Home, Icons.Filled.Favorite, Icons.Filled.Settings)
         Scaffold(
             topBar = {
                 ScrollableAppBar(
@@ -2229,6 +2919,23 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 Divider(color = colors.onBackground)
                             }
                         }
+                    }
+                }
+            },
+            bottomBar = {
+                BottomNavigation {
+                    listTitle.forEachIndexed { index, item ->
+                        val setColor = if(selectedItem == index) {
+                            colors.onError
+                        } else {
+                            colors.error
+                        }
+                        BottomNavigationItem(
+                            icon = { Icon(listIcon[index], contentDescription = getString(CONTENT_DESCRIPTION), tint = setColor ) },
+                            label = { Text(item, color = setColor) },
+                            selected = selectedItem == index,
+                            onClick = { selectedItem = index }
+                        )
                     }
                 }
             }
@@ -2354,6 +3061,8 @@ class Delegate {
 data class Person(val name: String, val age: Int)
 data class Message(val author: String, val body: String)
 data class Elevations(val card: Dp = 0.dp, val default: Dp = 0.dp)
+data class ButtonState(var text: String, var textColor: Color, var buttonColor: Color)
+
 
 object SampleData {
     val conversationSample = listOf(
