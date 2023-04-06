@@ -37,19 +37,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -149,8 +148,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun MessageCard(msg: Message, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, navController: NavController, colors: Colors, shapes: Shapes, typography: Typography) {
-        val style = TextStyle(fontSize = 11.sp)
+    fun MessageCard(context: Context, msg: Message, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, navController: NavController, colors: Colors, shapes: Shapes, typography: Typography, style: TextStyle) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -323,6 +321,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             }
                             SampleStateButton(colors = colors, style = style)
                             RememberCoroutineScope(
+                                context = context,
                                 rememberCoroutineScope = coroutineScope,
                                 scaffoldState = scaffoldState,
                                 colors = colors,
@@ -858,7 +857,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun RememberCoroutineScope(rememberCoroutineScope: CoroutineScope, scaffoldState: ScaffoldState, colors: Colors, style: TextStyle) {
+    fun RememberCoroutineScope(context: Context, rememberCoroutineScope: CoroutineScope, scaffoldState: ScaffoldState, colors: Colors, style: TextStyle) {
         // 創建綁定到 RememberCoroutineScope 生命週期的 CoroutineScope
         // `LaunchedEffect` 將取消並重新啟動 `scaffoldState.snackBarHostState` 變化
         val verticalArrangement = Arrangement.Center
@@ -888,7 +887,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                     RememberUpdatedState(colors, style)
                     SideEffect(style, horizontalAlignment)
-                    ProduceState(colors, style)
+                    ProduceState(context = context, colors = colors, style = style)
                 }
             }
             LaunchedEffect(scaffoldState.snackbarHostState, Dispatchers.IO) {
@@ -982,9 +981,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun ProduceState(colors: Colors, style: TextStyle) {
+    fun ProduceState(context: Context, colors: Colors, style: TextStyle) {
         var timerStartStop by remember { mutableStateOf(false) }
-        val context = LocalContext.current
         val timer by produceState(initialValue = 0, timerStartStop) {
             val x = (1..10).random()
             var job: Job? = null
@@ -1420,13 +1418,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun SortList(colors: Colors, style: TextStyle, list: List<String>, modifier: Modifier) {
-        val listComparator = Comparator<String> { left, right ->
-            right.compareTo(left)
-        }
+        val listComparator = Comparator<String> { left, right -> right.compareTo(left) }
         val comparator by remember { mutableStateOf(listComparator) }
-        val sortedList = remember(list, comparator) {
-            list.sortedWith(comparator)
-        }
+        val sortedList = remember(list, comparator) { list.sortedWith(comparator) }
         LazyRow(modifier = modifier) {
             item {
                 Text(
@@ -1728,6 +1722,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun PageJumpSamples(msg: Message) {
+        val context = LocalContext.current
         val navController = rememberNavController()
         val scaffoldState = rememberScaffoldState()
         val coroutineScope = rememberCoroutineScope()
@@ -1735,6 +1730,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
         val route = backstackEntry.value?.destination?.route
         val shapes = MaterialTheme.shapes
         val colors = MaterialTheme.colors
+        val style = TextStyle(fontSize = 11.sp)
         val typography = MaterialTheme.typography
         // 定義一個具有默認值的 CompositionLocal 全局對象
         // 這個實例可以被應用中的所有可組合項訪問
@@ -1754,7 +1750,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 composable(
                     route = ROUTE_MAIN,
                 ) {
-                    ActivityMain(msg = msg, scaffoldState = scaffoldState, coroutineScope = coroutineScope, navController = navController, colors = colors, shapes = shapes, typography = typography)
+                    ActivityMain(context = context, msg = msg, scaffoldState = scaffoldState, coroutineScope = coroutineScope, navController = navController, colors = colors, shapes = shapes, typography = typography, style = style)
                 }
                 composable(
                     //方法一
@@ -1769,28 +1765,28 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         defaultValue = 34
                     })
                 ) {
-                    ActivityOne(it.arguments?.getString("name") ?: "Tony", it.arguments?.getInt("age") ?: -1, scaffoldState = scaffoldState, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, elevations = elevations, localElevation = LocalElevations) {
+                    ActivityOne(context = context, name = it.arguments?.getString("name") ?: "Tony", it.arguments?.getInt("age") ?: -1, scaffoldState = scaffoldState, coroutineScope = coroutineScope, colors = colors, style = style, shapes = shapes, typography = typography, elevations = elevations, localElevation = LocalElevations) {
                         navController.popBackStack()
                     }
                 }
                 composable(
                     route = ROUTE_TWO
                 ) {
-                    ActivityTwo(coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography) {
+                    ActivityTwo(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
                         navController.popBackStack()
                     }
                 }
                 composable(
                     route = ROUTE_THREE
                 ) {
-                    ActivityThree(coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography) {
+                    ActivityThree(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography) {
                         navController.popBackStack()
                     }
                 }
                 composable(
                     route = ROUTE_FOUR
                 ) {
-                    ActivityFour(coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography) {
+                    ActivityFour(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography) {
                         navController.popBackStack()
                     }
                 }
@@ -1799,13 +1795,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun ActivityMain(msg: Message, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, navController: NavController, colors: Colors, shapes: Shapes, typography: Typography) {
-        MessageCard(msg = msg, scaffoldState = scaffoldState, coroutineScope = coroutineScope, navController = navController, colors = colors, shapes = shapes, typography = typography)
+    fun ActivityMain(context: Context, msg: Message, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, navController: NavController, colors: Colors, shapes: Shapes, typography: Typography, style: TextStyle) {
+        MessageCard(context = context, msg = msg, scaffoldState = scaffoldState, coroutineScope = coroutineScope, navController = navController, colors = colors, shapes = shapes, typography = typography, style = style)
     }
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun ActivityOne(name: String, age: Int, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, elevations: Elevations, localElevation: ProvidableCompositionLocal<Elevations>, navigation: () -> Unit) {
+    fun ActivityOne(context: Context, name: String, age: Int, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, elevations: Elevations, localElevation: ProvidableCompositionLocal<Elevations>, navigation: () -> Unit) {
         val modalDrawer = rememberDrawerState(DrawerValue.Closed)
         val bottomDrawer = rememberBottomDrawerState(BottomDrawerValue.Closed)
         Scaffold(
@@ -1826,25 +1822,25 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 contentDescription = getString(CONTENT_DESCRIPTION)
                             )
                         }
-                    IconButton(
-                          onClick = {
-                             coroutineScope.launch(Dispatchers.IO) {
-                             scaffoldState.drawerState.apply {
-                                 if (isClosed) open() else close()
-                              }
-                           }
-                        }) {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    scaffoldState.drawerState.apply {
+                                        if (isClosed) open() else close()
+                                    }
+                                }
+                            }) {
                             Icon(tint = colors.onError,
                                 imageVector = Icons.Default.Home,
                                 contentDescription = getString(CONTENT_DESCRIPTION)
                             )
                         }
-                }, title = {
-                    Text(
-                        text = "ActivityOne",
-                        color = colors.onError,
-                    )
-                }, actions = {
+                    }, title = {
+                        Text(
+                            text = "ActivityOne",
+                            color = colors.onError,
+                        )
+                    }, actions = {
                         IconButtonDemo(
                             content = {
                                 IconButton(onClick = {
@@ -1865,7 +1861,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 }
                             }
                         )
-                })
+                    })
             },
             bottomBar = {
                 BottomAppBar(cutoutShape = MaterialTheme.shapes.small.copy(CornerSize(percent = 50))) {
@@ -1876,19 +1872,19 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Spacer(Modifier.weight(1f, true))
                     IconButton(
                         onClick = {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            // 默認 SnackBarDuration.Short
-                            val result = scaffoldState.snackbarHostState.showSnackbar(message = "SnackBar", actionLabel = "Cancel", duration = SnackbarDuration.Indefinite)
-                            when (result) {
-                                SnackbarResult.ActionPerformed -> {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                // 默認 SnackBarDuration.Short
+                                val result = scaffoldState.snackbarHostState.showSnackbar(message = "SnackBar", actionLabel = "Cancel", duration = SnackbarDuration.Indefinite)
+                                when (result) {
+                                    SnackbarResult.ActionPerformed -> {
 
-                                }
-                                SnackbarResult.Dismissed -> {
+                                    }
+                                    SnackbarResult.Dismissed -> {
 
+                                    }
                                 }
                             }
-                        }
-                    }) {
+                        }) {
                         Icon(Icons.Filled.Favorite, getString(CONTENT_DESCRIPTION), tint = colors.onError)
                     }
                 }
@@ -1989,7 +1985,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                 }
                 Row {
-                    CoilImageDemo()
+                    CoilImageDemo(context = context)
                     SliderDemo(colors = colors)
                 }
                 TextDemo()
@@ -1999,8 +1995,6 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     TextEmphasisEffect()
                 }
                 BasicTextFieldDemo()
-                ListColumnLayout()
-
                 ModalDrawer(
                     modifier = Modifier
                         .width(800.dp)
@@ -2010,12 +2004,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         Text("Modal Drawer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
                         Divider()
                         Row{
-                         repeat(5) {
-                             Text("Modal Drawer List ", color = colors.onError, modifier = Modifier
-                                 .padding(4.dp)
-                                 .clickable { }, fontSize = 10.sp)
-                         }
-                       }
+                            repeat(5) {
+                                Text("Modal Drawer List ", color = colors.onError, modifier = Modifier
+                                    .padding(4.dp)
+                                    .clickable { }, fontSize = 10.sp)
+                            }
+                        }
                     },
                 ) {
 
@@ -2046,13 +2040,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
         Layout(
             modifier = modifier,
             content = content
-        ) { measurables, constraints ->
-            val placeables = measurables.map { measurable ->
+        ) { measurAbles, constraints ->
+            val placeAbles = measurAbles.map { measurable ->
                 measurable.measure(constraints)
             }
             var yPosition = 0
             layout(constraints.maxWidth, constraints.maxHeight) {
-                placeables.forEach { placeable ->
+                placeAbles.forEach { placeable ->
                     placeable.placeRelative(x = 0, y = yPosition)
                     yPosition += placeable.height
                 }
@@ -2061,36 +2055,30 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun ListColumnLayout(){
-        CustomColumnLayout{
-            repeat(7) {
-                Text(text = "Layout", fontSize = 12.sp)
+    fun ListColumnLayout() {
+        CustomColumnLayout {
+            repeat(8) {
+                Text(text = "CustomColumnLayout", fontSize = 12.sp)
             }
         }
     }
-    
+
     @Composable
-    fun CustomColumnLayout(
-        modifier: Modifier = Modifier,
-        content: @Composable () -> Unit
-    ) {
-        Layout(
-            modifier = modifier,
-            content = content
-        ) { measurables: List<Measurable>,
+    fun CustomColumnLayout(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+        Layout(modifier = modifier, content = content) { measureAbles: List<Measurable>,
             constraints: Constraints ->
-            // placeables 是经过测量的子元素，它拥有自身的尺寸值
-            val placeables = measurables.map { measurable ->
+            // placeAbles 是经过测量的子元素，它拥有自身的尺寸值
+            val placeAbles = measureAbles.map { measureAble ->
                 // 测量所有子元素，这里不编写任何自定义测量逻辑，只是简单地
                 // 调用 Measurable 的 measure 函数并传入 constraints
-                measurable.measure(constraints)
+                measureAble.measure(constraints)
             }
-            val width = placeables.sumOf { it.height }// 根据 placeables 计算得出
-            val height = placeables.maxOf { it.width }// 根据 placeables 计算得出
+            val width = placeAbles.sumOf { it.height }// 根据 placeAbles 计算得出
+            val height = placeAbles.maxOf { it.width }// 根据 placeAbles 计算得出
             // 报告所需的尺寸
             layout(width, height) {
                 var y = 0
-                placeables.forEach { placeable ->
+                placeAbles.forEach { placeable ->
                     //通过遍历将每个项目放置到最终的预期位置
                     placeable.placeRelative(x = 0, y = y)
                     // 按照所放置项目的高度增加 y 坐标值
@@ -2304,7 +2292,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
             modifier = Modifier.size(100.dp, 40.dp),
             onClick = {
 
-        }) {
+            }) {
             Icon(
                 // Material 庫中的圖標，有 Filled, Outlined, Rounded, Sharp, Two Tone 等
                 Icons.Filled.Favorite,
@@ -2417,8 +2405,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun CoilImageDemo() {
-        val context = LocalContext.current
+    fun CoilImageDemo(context: Context) {
         val imageLoader = ImageLoader.Builder(context)
             .componentRegistry {
                 add(SvgDecoder(context))
@@ -2463,14 +2450,14 @@ class MainActivity : ComponentActivity(), SampleInterface {
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colors.primary,
                 disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
-        activeTrackColor = MaterialTheme.colors.primary,
-        inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
-        disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
-        disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
-        activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
-        inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
-        disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
-        disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
+                activeTrackColor = MaterialTheme.colors.primary,
+                inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
+                disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
+                disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
+                activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
+                inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
+                disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
+                disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
             ),
             onValueChange = {
                 progress = it
@@ -2698,20 +2685,206 @@ class MainActivity : ComponentActivity(), SampleInterface {
 //        }
     }
 
+    @Composable
+    fun IntrinsicPropertyMeasurementDemo1(modifier: Modifier = Modifier, text1: String, text2: String, style: TextStyle) {
+        Row(modifier = modifier
+            .height(IntrinsicSize.Min)
+            .width(180.dp)) {
+            Text(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp)
+                    .wrapContentWidth(Alignment.Start),
+                text = text1,
+                style = style
+            )
+            Divider(color = Color.Black, modifier = Modifier
+                .fillMaxHeight()
+                .width(1.dp))
+            Text(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 4.dp)
+                    .wrapContentWidth(Alignment.End),
+                text = text2,
+                style = style
+            )
+        }
+    }
 
+    @Composable
+    fun IntrinsicPropertyMeasurementDemo2(colors: Colors, style: TextStyle) {
+        Row {
+            Box(
+                Modifier
+                    .size(20.dp)
+                    .background(colors.primaryVariant)) {
+                Text(text = "Jetpack Compose is an", color = colors.onError, style = style)
+            }
+            Box(
+                Modifier
+                    .size(20.dp)
+                    .background(colors.secondaryVariant)) {
+                Text(text = "excellent development tool", color = colors.onError, style = style)
+            }
+        }
+    }
 
+    @Composable
+    fun IntrinsicRow(modifier: Modifier, content: @Composable () -> Unit) {
+        Layout(
+            content = content,
+            modifier = modifier,
+            measurePolicy = object: MeasurePolicy {
+                override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints): MeasureResult {
+                    val divideConstraints = constraints.copy(minWidth = 0)
+                    val mainPlaceAbles = measurables.filter {
+                        it.layoutId == "main"
+                    }.map {
+                        it.measure(constraints)
+                    }
+                    val dividePlaceable = measurables.first { it.layoutId == "divider"}.measure(divideConstraints)
+                    val midPos = constraints.maxWidth / 2
+                    return layout(constraints.maxWidth, constraints.maxHeight) {
+                        mainPlaceAbles.forEach {
+                            it.placeRelative(0, 0)
+                        }
+                        dividePlaceable.placeRelative(midPos, 0)
+                    }
+                }
 
+                override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int {
+                    var maxHeight = 0
+                    measurables.forEach {
+                        maxHeight = it.maxIntrinsicHeight(width).coerceAtLeast(maxHeight)
+                    }
+                    return maxHeight
+                }
+            }
+        )
+    }
 
+    @Composable
+    fun SubcomposeRow(modifier: Modifier, text: @Composable () -> Unit, divider: @Composable (Int) -> Unit) { // 傳入高度
+        SubcomposeLayout(modifier = modifier) { constraints->
+            var maxHeight = 0
+            val placeAbles = subcompose("text", text).map {
+                val placeable = it.measure(constraints)
+                maxHeight = placeable.height.coerceAtLeast(maxHeight)
+                placeable
+            }
+            val dividerPlaceable = subcompose("divider") {
+                divider(maxHeight)
+            }.map {
+                it.measure(constraints.copy(minWidth = 0))
+            }
+            assert(dividerPlaceable.size == 1) { "DividerScope Error!" }
+            layout(constraints.maxWidth, constraints.maxHeight){
+                placeAbles.forEach {
+                    it.placeRelative(0, 0)
+                }
+                dividerPlaceable.forEach {
+                    it.placeRelative(0, 0)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun ParentDataBox() { // 父元素
+        Box(modifier = Modifier
+            .width(50.dp)
+            .height(50.dp)
+            .background(Color.Yellow)){ // 子元素
+            Box(modifier = Modifier
+                .align(Alignment.Center)
+                .size(25.dp)
+                .background(Color.Blue))
+        }
+    }
+
+    @Composable
+    fun CountBox(context: Context) {
+        Row {
+            repeat(5) {
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(randomColor(count = it))
+                        .count(context = context, num = Random.nextInt(30, 100))
+                )
+            }
+        }
+    }
+
+    @Composable
+    private fun randomColor(count: Int): Color {
+        return when(count) {
+            1 -> Color.Gray
+            2 -> Color.LightGray
+            3 -> Color.DarkGray
+            4 -> Color.Black
+            else -> Color.Cyan
+        }
+    }
+
+    interface VerticalScope {
+        @Stable
+        fun Modifier.weight(weight: Float) : Modifier
+    }
+
+    class WeightParentData(val weight: Float=0f) : ParentDataModifier {
+        override fun Density.modifyParentData(parentData: Any?) = this@WeightParentData
+    }
+
+    object VerticalScopeInstance : VerticalScope {
+        @Stable
+        override fun Modifier.weight(weight: Float): Modifier = this.then(
+            WeightParentData(weight)
+        )
+    }
+
+    @Composable
+    fun WeightedVerticalLayout(
+        modifier: Modifier = Modifier,
+        content: @Composable VerticalScope.() -> Unit
+    ) {
+        val measurePolicy = MeasurePolicy { measurables, constraints ->
+            val placeables = measurables.map {
+                it.measure(constraints)
+            }
+            // 获取各weight值
+            val weights = measurables.map {
+                (it.parentData as WeightParentData).weight
+            }
+            val totalHeight = constraints.maxHeight
+            val totalWeight = weights.sum()
+            // 宽度：最宽的一项
+            val width = placeables.maxOf { it.width }
+
+            layout(width, totalHeight) {
+                var y = 0
+                placeables.forEachIndexed() { i, placeable ->
+                    placeable.placeRelative(0, y)
+                    // 按比例设置大小
+                    y += (totalHeight * weights[i] / totalWeight).toInt()
+                }
+            }
+        }
+        Layout(modifier = modifier, content = { VerticalScopeInstance.content() }, measurePolicy = measurePolicy)
+    }
 
 
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
     fun ActivityTwo(
+        context: Context,
         coroutineScope: CoroutineScope,
         colors: Colors,
         shapes: Shapes,
         typography: Typography,
+        style: TextStyle,
         navigation: () -> Unit
     ) {
         val scaffoldState = rememberBottomSheetScaffoldState()
@@ -2776,21 +2949,94 @@ class MainActivity : ComponentActivity(), SampleInterface {
         ) {
             Column(modifier = Modifier.padding(it)) {
                 Row {
-                    Column {
-                        Surface(color = colors.onPrimary, modifier = Modifier
-                            .height(20.dp)
-                            .clickable {
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    sheetState.apply {
-                                        if (isVisible) sheetState.hide() else sheetState.show()
-                                    }
+                    Surface(color = colors.onPrimary, modifier = Modifier
+                        .height(20.dp)
+                        .clickable {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                sheetState.apply {
+                                    if (isVisible) sheetState.hide() else sheetState.show()
                                 }
-                            }) {
-                            Text(text = "Bottom Sheet Scaffold", color = Color.Red, fontSize = 12.sp)
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
+                            }
+                        }) {
+                        Text(text = "Bottom Sheet Scaffold", color = Color.Red, fontSize = 12.sp)
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IntrinsicPropertyMeasurementDemo2(colors = colors, style = style)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IntrinsicRow(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)) {
+                        Text(text = "Intrinsic", modifier = Modifier
+                            .wrapContentWidth(Alignment.Start)
+                            .layoutId("main"), style = style)
+                        Divider(color = Color.Black, modifier = Modifier
+                            .width(1.dp)
+                            .fillMaxHeight()
+                            .layoutId("divider"))
+                        Text(text = "Row", modifier = Modifier
+                            .wrapContentWidth(Alignment.End)
+                            .layoutId("main"), style = style)
                     }
                 }
+                Row {
+                    IntrinsicPropertyMeasurementDemo1(text1 = "Intrinsic", text2 = "Size", style = style)
+                    SubcomposeRow(
+                        modifier = Modifier
+                            .width(180.dp)
+                            .height(20.dp),
+                        text = {
+                            Text(text = "Subcompose", Modifier.wrapContentWidth(Alignment.Start), style = style)
+                            Text(text = "Row", Modifier.wrapContentWidth(Alignment.End), style = style)
+                        }
+                    ) {
+                        val heightPx = with(LocalDensity.current) { it.toDp() }
+                        Divider(
+                            color = Color.Black,
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(heightPx)
+                        )
+                    }
+                }
+                Row(modifier = Modifier.padding(4.dp, 0.dp)) {
+                    Box(modifier = Modifier
+                        .size(50.dp)
+                        .background(Color.Red)
+                        .wrapContentSize(align = Alignment.Center)
+                        .size(25.dp)
+                        .background(Color.Green))
+                    ParentDataBox()
+                    CountBox(context = context)
+                }
+                Row {
+                    ListColumnLayout()
+                    Spacer(modifier = Modifier.width(4.dp))
+                    WeightedVerticalLayout(
+                        Modifier
+                            .height(100.dp)
+                            .width(30.dp)) {
+                        Box(modifier = Modifier
+                            .width(30.dp)
+                            .weight(1f)
+                            .background(randomColor(1)))
+                        Box(modifier = Modifier
+                            .width(30.dp)
+                            .weight(2f)
+                            .background(randomColor(2)))
+                        Box(modifier = Modifier
+                            .width(30.dp)
+                            .weight(7f)
+                            .background(randomColor(3)))
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AnimationBtn(colors, style)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AnimationContentSize(colors, style)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AnimationCrossFade(colors, style)
+                }
+
+
                 ModalBottomSheetLayout(
                     sheetState = sheetState,
                     sheetContent = { //这里显示底部弹窗内容
@@ -2799,7 +3045,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         repeat(20) {
                             Text("Bottom Sheet List", color = colors.onError, modifier = Modifier
                                 .padding(4.dp)
-                                .clickable { }, fontSize = 10.sp)
+                                .clickable { }, style = style)
                         }
                     }, content = { //处理后退事件，显示和隐藏必须用协程执行
                         BackHandler(sheetState.isVisible) {
@@ -2813,9 +3059,118 @@ class MainActivity : ComponentActivity(), SampleInterface {
         }
     }
 
+    @Composable
+    fun AnimationBtn(colors: Colors, style: TextStyle) {
+        // 如果你在这里有 getValue 的报错，或者无法自动导入，这是一些旧版 Android Studio 还没有完全适配 Compose 的 bug。
+        // 你需要手动导入，或者更新到最新的 AS
+        // import androidx.compose.runtime.getValue
+        var state by remember{ mutableStateOf(true) }
+        Surface(color = colors.surface) {
+            Column(
+                modifier = Modifier.height(130.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ){
+                AnimatedVisibility(visible = state) {
+                    Text(
+                        text = "垂直消失",
+                        fontWeight = FontWeight.W900,
+                        style = style
+                    )
+                }
+                AnimatedVisibility(
+                    visible = state,
+                    enter = slideInVertically(
+                        initialOffsetY = { -40 }
+                    ) + expandVertically(
+                        expandFrom = Alignment.Top
+                    ) + fadeIn(initialAlpha = 0.3f),
+                    exit = shrinkHorizontally() + fadeOut()
+                ) {
+                    Text(
+                        text = "水平消失",
+                        fontWeight = FontWeight.W900,
+                        style = style
+                    )
+                }
+                Spacer(Modifier.size(40.dp, 78.dp))
+                Surface(
+                    modifier = Modifier
+                        .height(20.dp)
+                        .width(40.dp)
+                        .align(alignment = Alignment.CenterHorizontally),
+                    color = colors.primary
+                ) {
+                    Text(if(state) "隱藏" else "顯示", color = Color.White, style = style, textAlign = TextAlign.Center, modifier = Modifier.clickable {
+                        state = !state
+                    })
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationContentSize(colors: Colors, style: TextStyle) {
+        var text by remember{ mutableStateOf("contentSize 動畫") }
+        Surface(color = colors.onPrimary) {
+            Box(
+                modifier = Modifier
+                    .height(130.dp)
+                    .width(85.dp),
+                contentAlignment = Alignment.Center
+            ){
+                Text(text,
+                    color = colors.onError,
+                    modifier = Modifier
+                        .clickable {
+                            text += text
+                        }
+                        .animateContentSize(),
+                    style = style
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationCrossFade(colors: Colors, style: TextStyle) {
+        var flag by remember{ mutableStateOf(false) }
+        Column{
+            Crossfade(
+                targetState = flag, animationSpec = tween(1000)
+            ) {
+                when(it){
+                    false -> Screen1()
+                    true -> Screen2()
+                }
+            }
+            Surface(color = colors.onSecondary, modifier = Modifier.size(50.dp, 20.dp).align(alignment = Alignment.CenterHorizontally)) {
+                Text("切換", color = colors.onError, style = style, textAlign = TextAlign.Center, modifier = Modifier.clickable {
+                    flag = !flag
+                })
+            }
+        }
+    }
+
+    @Composable
+    fun Screen1() {
+        Box(
+            modifier = Modifier.background(Color.Red).size(50.dp, 110.dp),
+            contentAlignment = Alignment.Center
+        ) { }
+    }
+
+    @Composable
+    fun Screen2() {
+        Box(
+            modifier = Modifier.background(Color.Blue).size(50.dp, 110.dp),
+            contentAlignment = Alignment.Center
+        ) { }
+    }
+
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun ActivityThree(coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
+    fun ActivityThree(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
         val scaffoldState = rememberBackdropScaffoldState(initialValue = BackdropValue.Concealed)
         BackdropScaffold(
             scaffoldState = scaffoldState,
@@ -2872,7 +3227,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun ActivityFour(coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
+    fun ActivityFour(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
         val toolbarHeight = 200.dp // 定义 ToolBar 的高度
         val maxUpPx = with(LocalDensity.current) { toolbarHeight.roundToPx().toFloat() - 56.dp.roundToPx().toFloat() } // ToolBar 最大向上位移量 56.dp 参考自 androidx.compose.material AppBar.kt 里面定义的 private val AppBarHeight = 56.dp
         val minUpPx = 0f // ToolBar 最小向上位移量
@@ -2951,7 +3306,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Row {
                         Text("為LocalContentAlpha 提供的中值", fontSize = 14.sp)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("This Text也使用中值", fontSize = 14.sp)   
+                        Text("This Text也使用中值", fontSize = 14.sp)
                     }
                     Row {
                         CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.disabled) {
@@ -3011,9 +3366,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
          * 返回可繪製資源或 null 以模擬具有成功或錯誤狀態的結果
          */
         suspend fun load(url: String): ImageRes? {
-            delay(2000)
-            // 如果得到一個隨機數為零，則添加 Random 以返回 null。 得到null的可能性是1/4
-            return if (kotlin.random.Random.nextInt(until = 4) > 0) {
+            delay(2000) // 如果得到一個隨機數為零，則添加 Random 以返回 null。 得到null的可能性是1/4
+            return if (Random.nextInt(until = 4) > 0) {
                 val images = listOf(
                     R.drawable.ic_launcher_background,
                     R.drawable.ic_launcher_background,
@@ -3058,12 +3412,32 @@ class Delegate {
     }
 }
 
+// 作者 FunnySaltyFish (http://funnysaltyfish.fun)
+class CountNumParentData(var countNum: Int) : ParentDataModifier {
+    override fun Density.modifyParentData(parentData: Any?) = this@CountNumParentData
+}
+
+fun Modifier.count(context: Context, num: Int) = this
+    .drawWithContent {
+        drawIntoCanvas { canvas ->
+            val paint = android.graphics
+                .Paint()
+                .apply {
+                    color = context.resources.getColor(R.color.white)
+                    textSize = 40F
+                }
+            canvas.nativeCanvas.drawText(num.toString(), 0F, 40F, paint)
+        } // 绘制 Box 自身内容
+        drawContent()
+    }
+    .then( // 这部分是 父级数据修饰符
+        CountNumParentData(num)
+    )
+
 data class Person(val name: String, val age: Int)
 data class Message(val author: String, val body: String)
 data class Elevations(val card: Dp = 0.dp, val default: Dp = 0.dp)
 data class ButtonState(var text: String, var textColor: Color, var buttonColor: Color)
-
-
 object SampleData {
     val conversationSample = listOf(
         Message(
