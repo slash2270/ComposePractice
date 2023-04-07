@@ -35,9 +35,11 @@ import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
@@ -1779,7 +1781,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 composable(
                     route = ROUTE_THREE
                 ) {
-                    ActivityThree(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography) {
+                    ActivityThree(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
                         navController.popBackStack()
                     }
                 }
@@ -3035,8 +3037,36 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Spacer(modifier = Modifier.width(4.dp))
                     AnimationCrossFade(colors, style)
                 }
-
-
+                Row {
+                    AnimationAsState()
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AnimationSnap()
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AnimationAnimatable()
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AnimationBox()
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AnimationRememberInfiniteTransition()
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AnimationTargetBased()
+                    Spacer(modifier = Modifier.width(4.dp))
+                    AnimationVector()
+                }
+                Row {
+                    AnimationSpring()
+                    Spacer(modifier = Modifier.width(10.dp))
+                    AnimationTween()
+                }
+                Row {
+                    AnimationKeyframes()
+                    Spacer(modifier = Modifier.width(10.dp))
+                    AnimationRepeatable()
+                }
+                Row {
+                    AnimationInfiniteRepeatable()
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Gesture()
+                }
                 ModalBottomSheetLayout(
                     sheetState = sheetState,
                     sheetContent = { //这里显示底部弹窗内容
@@ -3144,7 +3174,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     true -> Screen2()
                 }
             }
-            Surface(color = colors.onSecondary, modifier = Modifier.size(50.dp, 20.dp).align(alignment = Alignment.CenterHorizontally)) {
+            Surface(color = colors.onSecondary, modifier = Modifier
+                .size(50.dp, 20.dp)
+                .align(alignment = Alignment.CenterHorizontally)) {
                 Text("切換", color = colors.onError, style = style, textAlign = TextAlign.Center, modifier = Modifier.clickable {
                     flag = !flag
                 })
@@ -3155,22 +3187,402 @@ class MainActivity : ComponentActivity(), SampleInterface {
     @Composable
     fun Screen1() {
         Box(
-            modifier = Modifier.background(Color.Red).size(50.dp, 110.dp),
+            modifier = Modifier
+                .background(Color.Red)
+                .size(50.dp, 110.dp),
             contentAlignment = Alignment.Center
-        ) { }
+        ) {
+
+        }
     }
 
     @Composable
     fun Screen2() {
         Box(
-            modifier = Modifier.background(Color.Blue).size(50.dp, 110.dp),
+            modifier = Modifier
+                .background(Color.Blue)
+                .size(50.dp, 110.dp),
             contentAlignment = Alignment.Center
-        ) { }
+        ) {
+
+        }
     }
+
+    @Composable
+    fun AnimationAsState() {
+        val enable = remember { mutableStateOf(false) }
+        val alpha: Float by animateFloatAsState(
+            targetValue = if (enable.value) 1f else 0.5f,
+            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+        )
+        val colors = animateColorAsState(targetValue = if (enable.value) Color.Green else Color.Red)
+        val size = animateIntSizeAsState(targetValue = if (enable.value) IntSize(25, 25) else IntSize(50, 50))
+        Box(
+            Modifier
+                .size(size.value.width.dp, size.value.height.dp)
+                .graphicsLayer(alpha = alpha)
+                .background(colors.value)
+                .clickable {
+                    enable.value = !enable.value
+                }
+        )
+    }
+
+    @Composable
+    fun AnimationAnimatable() {
+        var flag by remember{ mutableStateOf(false) }
+        val color = remember{ Animatable(Color.Gray) }
+        Box(
+            modifier = Modifier
+                .size(50.dp, 50.dp)
+                .background(color.value)
+                .clickable {
+                    flag = !flag
+                },
+            contentAlignment = Alignment.Center
+        ) {
+
+        }
+        LaunchedEffect(flag) {
+            color.animateTo(
+                targetValue = if (flag){ Color.Green } else { Color.Red },
+                animationSpec = tween(1000)
+            )
+        }
+    }
+
+    @Composable
+    fun AnimationSnap() { // 立即将值切换到结束值
+        val enable = remember { mutableStateOf(false) }
+        val alpha: Float by animateFloatAsState(targetValue = if (enable.value) 1f else 0.5f, animationSpec = snap(delayMillis = 1000))
+        val colors = animateColorAsState(targetValue = if (enable.value) Color.Cyan else Color.Magenta)
+        val size = animateIntSizeAsState(targetValue = if (enable.value) IntSize(25, 25) else IntSize(50, 50))
+        Box(
+            Modifier
+                .size(size.value.width.dp, size.value.height.dp)
+                .graphicsLayer(alpha = alpha)
+                .background(colors.value)
+                .clickable {
+                    enable.value = !enable.value
+                }
+        )
+    }
+
+    enum class BoxState { Collapsed, Expanded }
+
+    @Composable
+    fun AnimationBox() {
+        var boxState by remember { mutableStateOf(BoxState.Collapsed) }
+        val transitionData = updateTransitionData(boxState)
+        // UI 树
+        Box(
+            modifier = Modifier
+                .background(transitionData.color)
+                .size(transitionData.size)
+                .clickable {
+                    boxState = when (boxState) {
+                        BoxState.Collapsed -> BoxState.Expanded
+                        else -> BoxState.Collapsed
+                    }
+                }
+        )
+    }
+
+    // 保存动画数值
+    private class TransitionData(color: State<Color>, size: State<Dp>) {
+        val color by color
+        val size by size
+    }
+
+    // 创建一个 Transition 并返回其动画值。
+    @Composable
+    private fun updateTransitionData(boxState: BoxState): TransitionData {
+        val transition = updateTransition(boxState, label = "")
+        val color = transition.animateColor(label = "") { state ->
+            when (state) {
+                BoxState.Collapsed -> Color.Blue
+                BoxState.Expanded -> Color.Red
+            }
+        }
+        val size = transition.animateDp(label = "") { state ->
+            when (state) {
+                BoxState.Collapsed -> 25.dp
+                BoxState.Expanded -> 50.dp
+            }
+        }
+        return remember(transition) { TransitionData(color, size) }
+    }
+
+    @Composable
+    fun AnimationRememberInfiniteTransition() {
+        val infiniteTransition = rememberInfiniteTransition()
+        val color by infiniteTransition.animateColor(
+            initialValue = Color.Red, // 初始值
+            targetValue = Color.Green, // 最终值
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = LinearEasing), // 一个动画值的转换持续 1 秒，缓和方式为 LinearEasing
+                repeatMode = RepeatMode.Reverse
+                // 指定动画重复运行的方式，
+                // Reverse 为 init -> target, target -> init, init -> target
+                // Repeat 为 init -> target, init -> target, init -> target
+            )
+        )
+        Box(
+            Modifier
+                .size(50.dp)
+                .background(color))
+    }
+
+    @Composable
+    fun AnimationTargetBased() {
+        var state by remember {
+            mutableStateOf(0)
+        }
+        val anim = remember {
+            TargetBasedAnimation(
+                animationSpec = tween(2000),
+                typeConverter = Float.VectorConverter,
+                initialValue = 100f,
+                targetValue = 300f
+            )
+        }
+        var playTime by remember { mutableStateOf(0L) }
+        var animationValue by remember {
+            mutableStateOf(0)
+        }
+        LaunchedEffect(state) {
+            val startTime = withFrameNanos { it }
+            println("进入协程：")
+            do {
+                playTime = withFrameNanos { it } - startTime
+                animationValue = anim.getValueFromNanos(playTime).toInt()
+            } while (!anim.isFinishedFromNanos(playTime))
+
+        }
+        Box(modifier = Modifier.size(50.dp),contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .size(animationValue.dp)
+                .background(Color.LightGray, shape = RoundedCornerShape(animationValue / 9))
+                .clickable {
+                    state++
+                }, contentAlignment = Alignment.Center) {
+                Text(text = animationValue.toString(), style = TextStyle(color = Color.White, fontSize = (animationValue/9).sp))
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationSpring() { // 彈簧
+        val enable = remember { mutableStateOf(true) }
+        val value = animateIntAsState(
+            targetValue = if (enable.value) 300 else 100,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioHighBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        )
+        Box(
+            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Box(
+                Modifier
+                    .width(value.value.dp)
+                    .height(50.dp)
+                    .background(Color.Blue, RoundedCornerShape(topEnd = 30.dp, bottomEnd = 30.dp))
+                    .clickable {
+                        enable.value = !enable.value
+                    }, contentAlignment = Alignment.CenterStart
+            ) {
+
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationTween() { // 延伸填滿
+        val state = remember { mutableStateOf(true) }
+        val value = animateIntAsState(
+            targetValue = if (state.value) 300 else 100,
+            animationSpec = tween(
+                durationMillis = 1500,
+                delayMillis = 200,
+                easing = LinearEasing
+            )
+        )
+        Box(Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Box(
+                Modifier
+                    .width(value.value.dp)
+                    .height(50.dp)
+                    .background(Color.Green, RoundedCornerShape(topEnd = 30.dp, bottomEnd = 30.dp))
+                    .clickable {
+                        state.value = !state.value
+                    }
+            ) {
+
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationKeyframes() { // 階段性彈跳
+        var state by remember { mutableStateOf(true) }
+        val value by animateIntAsState(
+            targetValue = if (state) 300 else 100,
+            animationSpec = keyframes {
+                durationMillis = 1500
+                0 at 700 with LinearOutSlowInEasing
+                700 at 1400 with FastOutLinearInEasing
+                1400 at 2000
+            })
+        Box(Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Box(
+                Modifier
+                    .width(value.dp)
+                    .height(50.dp)
+                    .background(Color.Yellow, RoundedCornerShape(topEnd = 30.dp, bottomEnd = 30.dp))
+                    .clickable {
+                        state = !state
+                    }
+            ) {
+
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationRepeatable() { // 执行有限次数动画后自动停止
+        var state by remember { mutableStateOf(true) }
+        val value by animateIntAsState(
+            targetValue = if (state) 300 else 100,
+            animationSpec = repeatable(
+                iterations = 5,//动画重复执行的次数，设置多少就执行多少次
+                animation = tween(durationMillis = 1500),
+                repeatMode = RepeatMode.Reverse
+            )
+        )
+        Box(
+            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Box(
+                Modifier
+                    .width(value.dp)
+                    .height(50.dp)
+                    .background(Color.Red, RoundedCornerShape(topEnd = 30.dp, bottomEnd = 30.dp))
+                    .clickable {
+                        state = !state
+                    }
+            ) {
+
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationInfiniteRepeatable() {
+        var state by remember { mutableStateOf(true) }
+        val value by animateIntAsState(
+            targetValue = if (state) 300 else 100,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1000),
+                repeatMode = RepeatMode.Reverse
+            )
+        )
+        Box(
+            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Box(
+                Modifier
+                    .width(value.dp)
+                    .height(50.dp)
+                    .background(
+                        Color.LightGray,
+                        RoundedCornerShape(topEnd = 30.dp, bottomEnd = 30.dp)
+                    )
+                    .clickable {
+                        state = !state
+                    }
+            ) {
+
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationVector() {
+        var state by remember { mutableStateOf(true) }
+        val value by animateValueAsState(
+            targetValue = if (state) AnimationSize(0xffff5500, 100f) else AnimationSize(0xff00ff00, 300f),
+            typeConverter = TwoWayConverter(
+                convertToVector = {
+//                AnimationVector2D(target.color.toFloat(), target.size)
+                    AnimationVector2D(it.color.toFloat(), it.size)
+                },
+                convertFromVector = {
+                    AnimationSize(it.v1.toLong(), it.v2)
+                }
+            )
+        )
+        println("颜色:${value.color}")
+        Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(value.size.dp)
+//                .size(300.dp)
+                    .background(Color(value.color), RoundedCornerShape(60.dp))
+                    .clickable {
+                        state = !state
+                    }
+            ) {
+
+            }
+        }
+    }
+
+    @Composable
+    fun Gesture() {
+        val offset = remember { Animatable(Offset(0f, 0f), Offset.VectorConverter) }
+        Box(
+            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Color.DarkGray,
+                        RoundedCornerShape(topEnd = 30.dp, bottomEnd = 30.dp)
+                    )
+                    .clickable {
+
+                    }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            coroutineScope {
+                                while (true) { // 检测一个点击头事件并获得其位置。
+                                    val position = awaitPointerEventScope {
+                                        awaitFirstDown().position
+                                    }
+                                    launch { // 应用到点击的位置。
+                                        offset.animateTo(position)
+                                    }
+                                }
+                            }
+                        }
+                ) {
+                    Box(modifier = Modifier
+                        .size(20.dp)
+                        .offset { offset.value.toIntOffset() }
+                        .background(Color.Cyan, RoundedCornerShape(60.dp))) {
+                    }
+                }
+            }
+        }
+    }
+
+    private fun Offset.toIntOffset() = IntOffset(x.roundToInt(), y.roundToInt())
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun ActivityThree(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
+    fun ActivityThree(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, style: TextStyle, navigation: () -> Unit) {
         val scaffoldState = rememberBackdropScaffoldState(initialValue = BackdropValue.Concealed)
         BackdropScaffold(
             scaffoldState = scaffoldState,
@@ -3182,7 +3594,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             coroutineScope.launch {
                                 navigation()
                             }
-                        }
+                        },
+                        tint = colors.onError
                     )
                     Icon(
                         imageVector = Icons.Default.Menu,
@@ -3194,10 +3607,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     scaffoldState.conceal()
                                 }
                             }
-                        }
+                        },
+                        tint = colors.onError
                     )
                 },
-                    title = { Text(text = "ThreeActivity") }
+                    title = { Text(text = "ThreeActivity", color = colors.onError) }
                 )
             },
             backLayerContent = {
@@ -3210,12 +3624,36 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
             },
             frontLayerContent = {
-                Text("BackLayer Header", color = colors.onSecondary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
-                Divider()
-                repeat(10) {
-                    Text("BackLayer List", color = colors.onSecondary, modifier = Modifier
-                        .padding(4.dp)
-                        .clickable { }, fontSize = 10.sp)
+                Column {
+                    Text("FrontLayer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                    Divider(color = colors.onSecondary, modifier = Modifier.height(1.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row {
+                        AnimationDefault(colors = colors, style = style)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        AnimationApproach(colors = colors, style = style)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        AnimationEnterTransition(colors = colors, style = style)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Surface(color = colors.onError) {
+                            Column {
+                                AnimationIcon1()
+                                Spacer(modifier = Modifier.width(4.dp))
+                                AnimationSearchBar1()
+                            }
+                        }
+                    }
+                    Row {
+                        Surface(color = colors.onError) {
+                            Column {
+                                AnimationIcon2()
+                                Spacer(modifier = Modifier.width(4.dp))
+                                AnimationSearchBar2()
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        SwitchBlock()
+                    }
                 }
             },
             peekHeight = 120.dp,
@@ -3225,6 +3663,260 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
         }
     }
+
+    @Composable
+    fun AnimationDefault(colors: Colors, style: TextStyle) {
+        var state by remember{ mutableStateOf(true)}
+        Surface(color = colors.onError) {
+            Column(
+                modifier = Modifier.size(75.dp, 100.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ){
+                AnimatedVisibility(visible = state) {
+                    Text(
+                        text = "Animation\nDefault",
+                        fontWeight = FontWeight.W900,
+                        style = style
+                    )
+                }
+                Spacer(Modifier.padding(vertical = 16.dp))
+                Button(onClick = { state = !state }) {
+                    Text(if(state) "隱藏" else "顯示", color = colors.onSurface)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationApproach(colors: Colors, style: TextStyle) {
+        var state by remember{ mutableStateOf(true)}
+        Surface(color = colors.onError) {
+            Column(
+                modifier = Modifier.size(75.dp, 100.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ){
+                AnimatedVisibility(
+                    visible = state,
+                    enter = slideInVertically(
+                        initialOffsetY = { - 1000 },
+                        animationSpec = tween(durationMillis = 1200)
+                    )
+                ) {
+                    Text(
+                        text = "Animation\nApproach",
+                        fontWeight = FontWeight.W900,
+                        style = style
+                    )
+                }
+                Spacer(Modifier.padding(vertical = 16.dp))
+                Button(onClick = { state = !state }) {
+                    Text(if(state) "隱藏" else "顯示", color = colors.onSurface)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationEnterTransition(colors: Colors, style: TextStyle) {
+        var state by remember{ mutableStateOf(true)}
+        Surface(color = colors.onError) {
+            Column(
+                modifier = Modifier.size(75.dp, 100.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ){
+                AnimatedVisibility(
+                    visible = state,
+                    enter = slideInVertically(
+                        initialOffsetY = { - 1000 },
+                        animationSpec = tween(durationMillis = 1200)
+                    ) + fadeIn(
+                        animationSpec = tween(durationMillis = 1200)
+                    )
+                ) {
+                    Text(
+                        text = "Animation\nEnter\nTransition",
+                        fontWeight = FontWeight.W900,
+                        style = style
+                    )
+                }
+                Spacer(Modifier.padding(vertical = 10.dp))
+                Button(onClick = { state = !state }) {
+                    Text(if(state) "隱藏" else "顯示", color = colors.onSurface)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun AnimationIcon1() {
+        var change by remember{ mutableStateOf(false) }
+        var flag by remember{ mutableStateOf(false) }
+        val buttonSize by animateDpAsState(
+            targetValue = if(change) 32.dp else 24.dp
+        )
+        if(buttonSize == 32.dp) {
+            change = false
+        }
+        IconButton(
+            onClick = {
+                change = true
+                flag = !flag
+            }
+        ) {
+            Icon(Icons.Default.Favorite,
+                contentDescription = null,
+                modifier = Modifier.size(buttonSize),
+                tint = if(flag) Color.Red else Color.Gray
+            )
+        }
+    }
+
+    @Composable
+    fun AnimationSearchBar1() {
+        var text by remember{ mutableStateOf("") }
+        var focusState by remember { mutableStateOf(false) }
+        val size by animateFloatAsState(targetValue = if(focusState) 1f else 0.5f)
+        Column(
+            modifier = Modifier.size(120.dp, 54.dp)
+        ) {
+            TextField(
+                value = text,
+                onValueChange = {
+                    text = it
+                },
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .onFocusChanged {
+                        focusState = it.isFocused
+                    }
+                    .fillMaxWidth(size)
+            )
+        }
+    }
+
+    @Composable
+    fun AnimationIcon2() {
+        var change by remember{ mutableStateOf(false) }
+        var flag by remember{ mutableStateOf(false) }
+        val buttonSizeVariable = remember { Animatable(24.dp, Dp.Companion.VectorConverter) }
+
+        LaunchedEffect(change) {
+            buttonSizeVariable.animateTo(if(change) 32.dp else 24.dp)
+        }
+        if(buttonSizeVariable.value == 32.dp) {
+            change = false
+        }
+        IconButton(
+            onClick = {
+                change = true
+                flag = !flag
+            }
+        ) {
+            Icon(
+                Icons.Default.Favorite,
+                contentDescription = null,
+                modifier = Modifier.size(buttonSizeVariable.value),
+                tint = if(flag) Color.Red else Color.Gray
+            )
+        }
+    }
+
+    @Composable
+    fun AnimationSearchBar2() {
+        var text by remember{ mutableStateOf("") }
+        var focusState by remember { mutableStateOf(false)}
+        val sizeVariable = remember { Animatable(0f) }
+
+        LaunchedEffect(focusState) {
+            sizeVariable.animateTo(if(focusState) 1f else 0.5f)
+        }
+        Column(
+            modifier = Modifier.size(154.dp, 54.dp)
+        ) {
+            TextField(
+                value = text,
+                onValueChange = {
+                    text = it
+                },
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .onFocusChanged {
+                        focusState = it.isFocused
+                    }
+                    .fillMaxWidth(sizeVariable.value)
+            )
+        }
+    }
+
+    sealed class SwitchState {
+        object OPEN: SwitchState()
+        object CLOSE: SwitchState()
+    }
+
+    @Composable
+    fun SwitchBlock(){
+        var selectedState: SwitchState by remember { mutableStateOf(SwitchState.CLOSE) }
+        val transition = updateTransition(selectedState, label = "switch_transition")
+        val selectBarPadding by transition.animateDp(transitionSpec = { tween(1000) }, label = "") {
+            when (it) {
+                SwitchState.CLOSE -> 40.dp
+                SwitchState.OPEN -> 0.dp
+            }
+        }
+        val textAlpha by transition.animateFloat(transitionSpec = { tween(1000) }, label = "") {
+            when (it) {
+                SwitchState.CLOSE -> 1f
+                SwitchState.OPEN -> 0f
+            }
+        }
+        Box(
+            modifier = Modifier
+                .size(130.dp, 112.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable {
+                    selectedState =
+                        if (selectedState == SwitchState.OPEN) SwitchState.CLOSE else SwitchState.OPEN
+                }
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = "node_background",
+                contentScale = ContentScale.FillBounds
+            )
+            Text(
+                text = "点我",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.W900,
+                color = Color.White,
+                modifier = Modifier.align(Alignment.Center).alpha(textAlpha)
+            )
+            Box(modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(40.dp)
+                .padding(top = selectBarPadding)
+                .background(Color(0xFF5FB878))
+            ) {
+                Row(modifier = Modifier.align(Alignment.Center).alpha(1 - textAlpha)
+                ) {
+                    Icon(painter = painterResource(id = R.drawable.ic_launcher_background), contentDescription = "star", tint = Color.White)
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = "已选择",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.W900,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+
+
+
 
     @Composable
     fun ActivityFour(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
@@ -3434,6 +4126,7 @@ fun Modifier.count(context: Context, num: Int) = this
         CountNumParentData(num)
     )
 
+data class AnimationSize(val color: Long, val size: Float)
 data class Person(val name: String, val age: Int)
 data class Message(val author: String, val body: String)
 data class Elevations(val card: Dp = 0.dp, val default: Dp = 0.dp)
