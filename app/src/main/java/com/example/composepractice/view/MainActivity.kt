@@ -14,7 +14,10 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -33,6 +36,11 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -89,6 +97,8 @@ import com.example.composepractice.Constants.Companion.ROUTE_THREE
 import com.example.composepractice.Constants.Companion.ROUTE_TWO
 import com.example.composepractice.R
 import com.example.composepractice.components.ScrollableAppBar
+import com.example.composepractice.data.*
+import com.example.composepractice.ui.theme.BloomTheme
 import com.example.composepractice.ui.theme.ComposePracticeTheme
 import com.example.composepractice.ui.theme.ComposeTutorialTheme
 import com.example.composepractice.ui.theme.Shapes
@@ -141,11 +151,16 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun Greeting(name: String) {
+    fun Greeting(coroutineScope: CoroutineScope, name: String) {
         Text(
             text = "Hello $name!",
             color = Color.Green,
-            style = MaterialTheme.typography.h6
+            style = MaterialTheme.typography.h6,
+            modifier = Modifier.clickable {
+                coroutineScope.launch(Dispatchers.Main) {
+                    TouristGuide.toWelcome()
+                }
+            }
         )
     }
 
@@ -168,7 +183,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     repeat(1) {
                         Column {
                             ComposePracticeTheme(darkTheme = false) {
-                                Greeting("Preview Composable")
+                                Greeting(coroutineScope = coroutineScope, name = "Preview Composable")
                             }
                             Row(horizontalArrangement = Arrangement.SpaceAround) {
                                 Row(modifier = Modifier.padding(all = 4.dp)) {
@@ -291,8 +306,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     Spacer(
                                         Modifier
                                             .matchParentSize()
-                                            .background(Color.Gray)
-                                    )
+                                            .background(Color.Gray))
                                     Text(
                                         text = "modifier order",
                                         color = colors.error,
@@ -308,8 +322,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     Spacer(
                                         Modifier
                                             .matchParentSize()
-                                            .background(Color.Gray)
-                                    )
+                                            .background(Color.Gray))
                                     Text(
                                         text = "modifier order",
                                         color = colors.error,
@@ -1728,6 +1741,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
         val navController = rememberNavController()
         val scaffoldState = rememberScaffoldState()
         val coroutineScope = rememberCoroutineScope()
+        val theme by remember { mutableStateOf(BloomTheme.DARK) }
         val backstackEntry = navController.currentBackStackEntryAsState() //获取当前的路由状态
         val route = backstackEntry.value?.destination?.route
         val shapes = MaterialTheme.shapes
@@ -1744,6 +1758,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
             Elevations(card = 5.dp, default = 5.dp)
         }
         // 將高程綁定為 LocalElevations 的值
+        TouristGuide.navController = navController
         CompositionLocalProvider(LocalElevations provides elevations) {
             // ... 內容放在這裡 ...
             // Composition 的這一部分將看到 `elevations` 實例
@@ -1771,25 +1786,43 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         navController.popBackStack()
                     }
                 }
-                composable(
-                    route = ROUTE_TWO
-                ) {
+                composable(route = ROUTE_TWO) {
                     ActivityTwo(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
                         navController.popBackStack()
                     }
                 }
-                composable(
-                    route = ROUTE_THREE
-                ) {
+                composable(route = ROUTE_THREE) {
                     ActivityThree(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
                         navController.popBackStack()
                     }
                 }
-                composable(
-                    route = ROUTE_FOUR
-                ) {
+                composable(route = ROUTE_FOUR) {
                     ActivityFour(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography) {
                         navController.popBackStack()
+                    }
+                }
+                composable(RouterPath.WELCOME) {
+                    window.statusBarColor = MaterialTheme.colors.primary.toArgb()
+                    BloomTheme(theme) {
+                        WelcomePage {
+                            navController.popBackStack()
+                        }
+                    }
+                }
+                composable(RouterPath.LOGIN) {
+                    window.statusBarColor = MaterialTheme.colors.background.toArgb()
+                    BloomTheme(theme) {
+                        LoginPage {
+                            navController.popBackStack()
+                        }
+                    }
+                }
+                composable(RouterPath.HOME) {
+                    window.statusBarColor = MaterialTheme.colors.background.toArgb()
+                    BloomTheme(theme) {
+                        HomePage {
+                            navController.popBackStack()
+                        }
                     }
                 }
             }
@@ -1851,7 +1884,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 }
                             },
                             onClick = {
-
+                                coroutineScope.launch(Dispatchers.Main) {
+                                }
                             })
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
@@ -1913,14 +1947,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
             floatingActionButtonPosition = FabPosition.Center,
         ) {
             Column(modifier = Modifier.padding(it)) {
-                // 定義一個具有默認值的 CompositionLocal 全局對象
-                // 這個實例可以被應用中的所有可組合項訪問
+                // 定義一個具有默認值的 CompositionLocal 全局對象 這個實例可以被應用中的所有可組合項訪問
                 CompositionLocalExample()
                 Row(modifier = Modifier.padding(4.dp, 0.dp)) {
                     Surface(elevation = elevations.default, color = Color.Transparent) {
                         Text(text = "我是${name}今年${age}歲", color = colors.secondaryVariant, fontSize = 12.sp, modifier = Modifier.clickable {
-                            coroutineScope.launch(Dispatchers.IO) {
-
+                            coroutineScope.launch(Dispatchers.Main) {
                             }
                         })
                     }
@@ -1996,7 +2028,10 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Spacer(modifier = Modifier.width(4.dp))
                     TextEmphasisEffect()
                 }
-                BasicTextFieldDemo()
+                Row {
+                    BasicTextFieldDemo()
+                    ScrollableSample()
+                }
                 ModalDrawer(
                     modifier = Modifier
                         .width(800.dp)
@@ -2851,22 +2886,22 @@ class MainActivity : ComponentActivity(), SampleInterface {
         modifier: Modifier = Modifier,
         content: @Composable VerticalScope.() -> Unit
     ) {
-        val measurePolicy = MeasurePolicy { measurables, constraints ->
-            val placeables = measurables.map {
+        val measurePolicy = MeasurePolicy { measurAbles, constraints ->
+            val placeAbles = measurAbles.map {
                 it.measure(constraints)
             }
             // 获取各weight值
-            val weights = measurables.map {
+            val weights = measurAbles.map {
                 (it.parentData as WeightParentData).weight
             }
             val totalHeight = constraints.maxHeight
             val totalWeight = weights.sum()
             // 宽度：最宽的一项
-            val width = placeables.maxOf { it.width }
+            val width = placeAbles.maxOf { it.width }
 
             layout(width, totalHeight) {
                 var y = 0
-                placeables.forEachIndexed() { i, placeable ->
+                placeAbles.forEachIndexed() { i, placeable ->
                     placeable.placeRelative(0, y)
                     // 按比例设置大小
                     y += (totalHeight * weights[i] / totalWeight).toInt()
@@ -2876,7 +2911,28 @@ class MainActivity : ComponentActivity(), SampleInterface {
         Layout(modifier = modifier, content = { VerticalScopeInstance.content() }, measurePolicy = measurePolicy)
     }
 
-
+    @Composable
+    fun ScrollableSample() {
+        // actual composable state
+        var offset by remember { mutableStateOf(0f) }
+        Box(
+            Modifier
+                .size(50.dp)
+                .scrollable(
+                    orientation = Orientation.Vertical,
+                    // Scrollable state: describes how to consume
+                    // scrolling delta and update offset
+                    state = rememberScrollableState { delta ->
+                        offset += delta
+                        delta
+                    }
+                )
+                .background(Color.LightGray),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(offset.toString())
+        }
+    }
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
@@ -3652,7 +3708,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             }
                         }
                         Spacer(modifier = Modifier.width(4.dp))
-                        SwitchBlock()
+                        Surface(color = colors.onSurface) {
+                            SwitchBlock(style = style)
+                        }
+                        LocalComposition(style = style)
+                    }
+                    Row {
+                        CompositionLocalDemo(colors = colors, style = style)
                     }
                 }
             },
@@ -3780,7 +3842,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
         var focusState by remember { mutableStateOf(false) }
         val size by animateFloatAsState(targetValue = if(focusState) 1f else 0.5f)
         Column(
-            modifier = Modifier.size(120.dp, 54.dp)
+            modifier = Modifier.size(120.dp, 52.dp)
         ) {
             TextField(
                 value = text,
@@ -3834,7 +3896,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
             sizeVariable.animateTo(if(focusState) 1f else 0.5f)
         }
         Column(
-            modifier = Modifier.size(154.dp, 54.dp)
+            modifier = Modifier.size(154.dp, 52.dp)
         ) {
             TextField(
                 value = text,
@@ -3857,7 +3919,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun SwitchBlock(){
+    fun SwitchBlock(style: TextStyle){
         var selectedState: SwitchState by remember { mutableStateOf(SwitchState.CLOSE) }
         val transition = updateTransition(selectedState, label = "switch_transition")
         val selectBarPadding by transition.animateDp(transitionSpec = { tween(1000) }, label = "") {
@@ -3872,9 +3934,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 SwitchState.OPEN -> 0f
             }
         }
+        val imageAlpha by transition.animateFloat(transitionSpec = { tween(1000) }, label = "") {
+            when (it) {
+                SwitchState.CLOSE -> 0f
+                SwitchState.OPEN -> 1f
+            }
+        }
         Box(
             modifier = Modifier
-                .size(130.dp, 112.dp)
+                .size(130.dp, 100.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .clickable {
                     selectedState =
@@ -3884,37 +3952,140 @@ class MainActivity : ComponentActivity(), SampleInterface {
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "node_background",
-                contentScale = ContentScale.FillBounds
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .alpha(imageAlpha)
             )
             Text(
-                text = "点我",
+                text = "點我",
+                style = style,
                 fontSize = 30.sp,
-                fontWeight = FontWeight.W900,
                 color = Color.White,
-                modifier = Modifier.align(Alignment.Center).alpha(textAlpha)
+                fontWeight = FontWeight.W900,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .alpha(textAlpha)
             )
             Box(modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(40.dp)
+                .height(30.dp)
                 .padding(top = selectBarPadding)
                 .background(Color(0xFF5FB878))
             ) {
-                Row(modifier = Modifier.align(Alignment.Center).alpha(1 - textAlpha)
+                Row(modifier = Modifier
+                    .align(Alignment.Center)
+                    .alpha(1 - textAlpha)
                 ) {
                     Icon(painter = painterResource(id = R.drawable.ic_launcher_background), contentDescription = "star", tint = Color.White)
                     Spacer(modifier = Modifier.width(2.dp))
                     Text(
-                        text = "已选择",
+                        text = "已選擇",
+                        style = style,
                         fontSize = 20.sp,
+                        color = Color.White,
                         fontWeight = FontWeight.W900,
-                        color = Color.White
                     )
                 }
             }
         }
     }
 
+    @Composable
+    fun LocalComposition(style: TextStyle) {
+        val localString = compositionLocalOf { "Composition Local Of" }
+        ComposeTutorialTheme(true) {
+            Column {
+                CompositionLocalProvider(
+                    localString provides "Composition Local Provider"
+                ) {
+                    Text(
+                        text = localString.current,
+                        color = Color.Green,
+                        style = style
+                    )
+                    CompositionLocalProvider(
+                        localString provides "Composition Local String"
+                    ) {
+                        Text(
+                            text = localString.current,
+                            color = Color.Yellow,
+                            style = style
+                        )
+                    }
+                }
+                Text(
+                    text = localString.current,
+                    color = Color.Red,
+                    style = style
+                )
+                Text(
+                    text = "Slash Tang",
+                    color = Color.Cyan,
+                    style = style
+                )
+            }
+        }
+    }
+
+    var isStatic = false
+    var compositionLocalName = ""
+    val currentLocalColor = if (isStatic) {
+        compositionLocalName = "StaticCompositionLocal 場景"
+        staticCompositionLocalOf { Color.Black }
+    } else {
+        compositionLocalName = "DynamicCompositionLocal 場景"
+        compositionLocalOf { Color.Black }
+    }
+    var recomposeFlag = "Init"
+    @Composable
+    fun CompositionLocalDemo(isStatic: Boolean = false, colors: Colors, style: TextStyle) {
+        var color by remember{ mutableStateOf(Color.Green) }
+        Box(
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = compositionLocalName)
+                Spacer (Modifier.height(10.dp))
+                CompositionLocalProvider(
+                    currentLocalColor provides color
+                ) {
+                    TaggedBox("Wrapper: $recomposeFlag", 240.dp, Color.Red, style = style) {
+                        TaggedBox("Middle: $recomposeFlag", 180.dp, currentLocalColor.current, style = style) {
+                            TaggedBox("Inner: $recomposeFlag", 120.dp, Color.Yellow, style = style)
+                        }
+                    }
+                }
+                Spacer (Modifier.height(10.dp))
+                Button(
+                    onClick = {
+                        color = colors.onError
+                    }
+                ) {
+                    Text(text = "改變主題", style = style, color = colors.onError)
+                }
+            }
+        }
+        recomposeFlag = "Recompose"
+    }
+
+    @Composable
+    fun TaggedBox(tag:String, size: Dp, background: Color, style: TextStyle, content: @Composable () -> Unit = {}) {
+        Column(
+            modifier = Modifier
+                .size(size)
+                .background(background),
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = tag, style = style)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                content()
+            }
+        }
+    }
 
 
 
@@ -4125,81 +4296,6 @@ fun Modifier.count(context: Context, num: Int) = this
     .then( // 这部分是 父级数据修饰符
         CountNumParentData(num)
     )
-
-data class AnimationSize(val color: Long, val size: Float)
-data class Person(val name: String, val age: Int)
-data class Message(val author: String, val body: String)
-data class Elevations(val card: Dp = 0.dp, val default: Dp = 0.dp)
-data class ButtonState(var text: String, var textColor: Color, var buttonColor: Color)
-object SampleData {
-    val conversationSample = listOf(
-        Message(
-            "Colleague",
-            "Test...Test...Test..."
-        ),
-        Message(
-            "Colleague",
-            "List of Android versions:\n" +
-                    "Android KitKat (API 19)\n" +
-                    "Android Lollipop (API 21)\n" +
-                    "Android Marshmallow (API 23)\n" +
-                    "Android Nougat (API 24)\n" +
-                    "Android Oreo (API 26)\n" +
-                    "Android Pie (API 28)\n" +
-                    "Android 10 (API 29)\n" +
-                    "Android 11 (API 30)\n" +
-                    "Android 12 (API 31)\n"
-        ),
-        Message(
-            "Colleague",
-            "I think Kotlin is my favorite programming language.\n" +
-                    "It's so much fun!"
-        ),
-        Message(
-            "Colleague",
-            "Searching for alternatives to XML layouts..."
-        ),
-        Message(
-            "Colleague",
-            "Hey, take a look at Jetpack Compose, it's great!\n" +
-                    "It's the Android's modern toolkit for building native UI." +
-                    "It simplifies and accelerates UI development on Android." +
-                    "Less code, powerful tools, and intuitive Kotlin APIs :)"
-        ),
-        Message(
-            "Colleague",
-            "It's available from API 21+ :)"
-        ),
-        Message(
-            "Colleague",
-            "Writing Kotlin for UI seems so natural, Compose where have you been all my life?"
-        ),
-        Message(
-            "Colleague",
-            "Android Studio next version's name is Arctic Fox"
-        ),
-        Message(
-            "Colleague",
-            "Android Studio Arctic Fox tooling for Compose is top notch ^_^"
-        ),
-        Message(
-            "Colleague",
-            "I didn't know you can now run the emulator directly from Android Studio"
-        ),
-        Message(
-            "Colleague",
-            "Compose Previews are great to check quickly how a composable layout looks like"
-        ),
-        Message(
-            "Colleague",
-            "Previews are also interactive after enabling the experimental setting"
-        ),
-        Message(
-            "Colleague",
-            "Have you tried writing build.gradle with KTS?"
-        ),
-    )
-}
 
 /*
 * Copyright (c) 2022, smuyyh@gmail.com All Rights Reserved.

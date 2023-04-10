@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.MaterialTheme.colors
+import androidx.compose.material.MaterialTheme.shapes
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
@@ -13,6 +14,10 @@ import androidx.compose.ui.graphics.Color.Companion.Blue
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.ViewCompat
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.example.composepractice.R
 
 private val DarkColorPalette = darkColors(
     primary = Purple200,
@@ -109,4 +114,66 @@ fun BasicsCodelabTheme(
         shapes = Shapes,
         content = content
     )
+}
+
+private val BloomLightColorPaltte = lightColors(
+    primary = pink100,
+    secondary = pink900,
+    background = white,
+    surface = white850,
+    onPrimary = gray,
+    onSecondary = white,
+    onBackground = gray,
+    onSurface = gray,
+)
+
+private val BloomDarkColorPaltte = darkColors(
+    primary = green900,
+    secondary = green300,
+    background = gray,
+    surface = white150,
+    onPrimary = white,
+    onSecondary = gray,
+    onBackground = white,
+    onSurface = white850
+)
+
+open class WelcomeAssets(var background: Int, var illos: Int, var logo: Int)
+
+object LightWelcomeAssets : WelcomeAssets(
+    background = R.drawable.ic_light_welcome_bg,
+    illos = R.drawable.ic_light_welcome_illos,
+    logo = R.drawable.ic_light_logo
+)
+
+object DarkWelcomeAssets : WelcomeAssets(
+    background = R.drawable.ic_dark_welcome_bg,
+    illos = R.drawable.ic_dark_welcome_illos,
+    logo = R.drawable.ic_dark_logo
+)
+
+internal var LocalWelcomeAssets = staticCompositionLocalOf { LightWelcomeAssets as WelcomeAssets }
+
+val MaterialTheme.welcomeAssets
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalWelcomeAssets.current
+
+enum class BloomTheme {
+    LIGHT, DARK
+}
+
+@Composable
+fun BloomTheme(theme: BloomTheme = BloomTheme.LIGHT, content: @Composable() () -> Unit) {
+    val welcomeAssets = if (theme == BloomTheme.DARK) DarkWelcomeAssets else LightWelcomeAssets
+    CompositionLocalProvider(
+        LocalWelcomeAssets provides welcomeAssets,
+    ) {
+        MaterialTheme(
+            colors = if (theme == BloomTheme.DARK) BloomDarkColorPaltte else BloomLightColorPaltte,
+            typography = bloomTypoGraphy,
+            shapes = shapes,
+            content = content
+        )
+    }
 }
