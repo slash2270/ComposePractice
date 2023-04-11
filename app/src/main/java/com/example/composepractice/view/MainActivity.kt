@@ -14,10 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.rememberScrollableState
-import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -43,10 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.*
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -57,7 +51,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -90,6 +84,7 @@ import androidx.navigation.navArgument
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import com.example.composepractice.Constants.Companion.CONTENT_DESCRIPTION
+import com.example.composepractice.Constants.Companion.ROUTE_FIVE
 import com.example.composepractice.Constants.Companion.ROUTE_FOUR
 import com.example.composepractice.Constants.Companion.ROUTE_MAIN
 import com.example.composepractice.Constants.Companion.ROUTE_ONE
@@ -175,10 +170,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
             },
             content = {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.LightGray)
-                        .padding(it)
+                    modifier = Modifier.fillMaxSize().background(Color.LightGray).padding(it)
                 ) { // 作为父级附加到嵌套滚动系统)
                     repeat(1) {
                         Column {
@@ -186,7 +178,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 Greeting(coroutineScope = coroutineScope, name = "Preview Composable")
                             }
                             Row(horizontalArrangement = Arrangement.SpaceAround) {
-                                Row(modifier = Modifier.padding(all = 4.dp)) {
+                                Row(modifier = Modifier.padding(all = 4.dp).clickable {
+                                    coroutineScope.launch(Dispatchers.Main) {
+                                        TouristGuide.toWelcome()
+                                    }
+                                }) {
                                     val modifier1 = Modifier
                                         .size(40.dp)
                                         .clip(CircleShape)
@@ -1801,6 +1797,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         navController.popBackStack()
                     }
                 }
+                composable(route = ROUTE_FIVE) {
+                    ActivityFive(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
+                        navController.popBackStack()
+                    }
+                }
                 composable(RouterPath.WELCOME) {
                     window.statusBarColor = MaterialTheme.colors.primary.toArgb()
                     BloomTheme(theme) {
@@ -2913,15 +2914,14 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun ScrollableSample() {
-        // actual composable state
+        // 實際可組合狀態
         var offset by remember { mutableStateOf(0f) }
         Box(
             Modifier
-                .size(50.dp)
+                .size(50.dp, 110.dp)
                 .scrollable(
                     orientation = Orientation.Vertical,
-                    // Scrollable state: describes how to consume
-                    // scrolling delta and update offset
+                    // Scrollable state：描述瞭如何消費scrolling delta和更新offset
                     state = rememberScrollableState { delta ->
                         offset += delta
                         delta
@@ -3714,7 +3714,72 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         LocalComposition(style = style)
                     }
                     Row {
-                        CompositionLocalDemo(colors = colors, style = style)
+                        Column {
+                            CompositionLocalDemo(colors = colors, style = style)
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Column {
+                            Row(modifier = Modifier.height(40.dp)) {
+                                ScrollBoxesSmooth(colors = colors, style = style)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                ScrollableExample(colors = colors, style = style)
+                            }
+                            Spacer(modifier = Modifier
+                                .height(4.dp)
+                                .fillMaxWidth())
+                            Row {
+                                ClickableDemo(style = style)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                CombinedClickDemo(style = style)
+                            }
+                            Spacer(modifier = Modifier
+                                .height(4.dp)
+                                .fillMaxWidth())
+                            DraggableDemo(colors = colors, style = style)
+                            Spacer(modifier = Modifier
+                                .height(4.dp)
+                                .fillMaxWidth())
+                            SwipeableDemo(colors = colors, style = style)
+                            Spacer(modifier = Modifier
+                                .height(4.dp)
+                                .fillMaxWidth())
+                            Row {
+                                HorizontalListDemo(colors = colors, style = style)
+                                Spacer(modifier = Modifier
+                                    .width(4.dp)
+                                    .fillMaxWidth())
+                                HorizontalListTheme(colors = colors, style = style)
+                            }
+                            Spacer(modifier = Modifier
+                                .height(4.dp)
+                                .fillMaxWidth())
+                            Row {
+                                TransformerDemo(colors = colors, style = style)
+                                Spacer(modifier = Modifier
+                                    .width(4.dp)
+                                    .fillMaxWidth())
+                                DragGestureDemo(colors = colors, style = style)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier
+                        .height(4.dp)
+                        .fillMaxWidth())
+                    Row {
+                        NestedBoxDemo()
+                        Spacer(modifier = Modifier
+                            .width(4.dp)
+                            .fillMaxWidth())
+                        ConsumeDemo()
+                        Spacer(modifier = Modifier
+                            .width(4.dp)
+                            .fillMaxWidth())
+                        BaseDragGestureDemo(colors = colors, style = style)
+                        Spacer(modifier = Modifier
+                            .width(4.dp)
+                            .fillMaxWidth())
+                        AwaitDragOrCancellation(colors = colors, style = style)
                     }
                 }
             },
@@ -4046,7 +4111,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = compositionLocalName)
+                Text(text = compositionLocalName, color = colors.onError, modifier = Modifier.clickable {
+                    color = if (color == Color.Green) {
+                        colors.onError
+                    } else {
+                        Color.Green
+                    }
+                })
                 Spacer (Modifier.height(10.dp))
                 CompositionLocalProvider(
                     currentLocalColor provides color
@@ -4056,14 +4127,6 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             TaggedBox("Inner: $recomposeFlag", 120.dp, Color.Yellow, style = style)
                         }
                     }
-                }
-                Spacer (Modifier.height(10.dp))
-                Button(
-                    onClick = {
-                        color = colors.onError
-                    }
-                ) {
-                    Text(text = "改變主題", style = style, color = colors.onError)
                 }
             }
         }
@@ -4087,7 +4150,454 @@ class MainActivity : ComponentActivity(), SampleInterface {
         }
     }
 
+    @Composable
+    private fun ScrollBoxesSmooth(colors: Colors, style: TextStyle) {
+        // 在第一個構圖上平滑滾動 100px
+        val state = rememberScrollState()
+        LaunchedEffect(Unit) { state.animateScrollTo(110) }
+        Column(
+            modifier = Modifier
+                .background(Color.DarkGray)
+                .width(55.dp)
+                .height(40.dp)
+                .verticalScroll(state)
+        ) {
+            repeat(10) {
+                Text("Item $it", modifier = Modifier.padding(2.dp), color = colors.onError, style = style)
+            }
+        }
+    }
 
+    @Composable
+    fun ScrollableExample(colors: Colors, style: TextStyle) {
+        // 實際可組合狀態
+        var offset by remember { mutableStateOf(0f) }
+        Box(
+            Modifier
+                .width(55.dp)
+                .height(40.dp)
+                .scrollable(
+                    orientation = Orientation.Vertical,
+                    // Scrollable state：描述瞭如何消費scrolling delta和更新offset
+                    state = rememberScrollableState { delta ->
+                        offset += delta
+                        delta
+                    }
+                )
+                .background(Color.Gray),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(offset.toString(), color = colors.onError, style = style)
+        }
+    }
+
+    @Composable
+    fun ClickableDemo(style: TextStyle) {
+        val enableState by remember { mutableStateOf(true) }
+        Box(modifier = Modifier
+            .width(55.dp)
+            .height(40.dp)
+            .background(Color.White)
+            .clickable(enabled = enableState) {
+                showToast("Clickable 點擊")
+            }
+        ) {
+            Text("Clickable", color = Color.Black, style = style)
+        }
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    fun CombinedClickDemo(style: TextStyle) {
+        val enableState by remember { mutableStateOf(true) }
+        Box(modifier = Modifier
+            .width(55.dp)
+            .height(40.dp)
+            .background(Color.Green)
+            .combinedClickable(
+                enabled = enableState,
+                onLongClick = {
+                    showToast("LongClick 點擊")
+                },
+                onDoubleClick = {
+                    showToast("DoubleClick 點擊")
+                },
+                onClick = {
+                    showToast("Click 點擊")
+                }
+            )
+        ) {
+            Text("CombinedClick", color = Color.Black, style = style)
+        }
+    }
+
+    @Composable
+    fun DraggableDemo(colors: Colors, style: TextStyle) {
+        var offsetX by remember { mutableStateOf(0f) }
+        val boxSideLengthDp = 50.dp
+        val boxSildeLengthPx = with(LocalDensity.current) { boxSideLengthDp.toPx() }
+        val draggableState = rememberDraggableState { offsetX = (offsetX + it).coerceIn(0f, 3 * boxSildeLengthPx) }
+        Box(
+            Modifier
+                .height(40.dp)
+                .fillMaxWidth()
+                .background(Color.Black)) {
+            Box(
+                Modifier
+                    .size(boxSideLengthDp)
+                    .offset {
+                        IntOffset(offsetX.roundToInt(), 0)
+                    }
+                    .draggable(
+                        orientation = Orientation.Horizontal,
+                        state = draggableState
+                    )
+                    .background(colors.onSurface)
+            ) {
+                Text("Draggable", color = colors.onError, style = style)
+            }
+        }
+    }
+
+    enum class Status{ CLOSE, OPEN }
+
+    @OptIn(ExperimentalMaterialApi::class)
+    @Composable
+    fun SwipeableDemo(colors: Colors, style: TextStyle) {
+        val blockSize = 48.dp
+        val blockSizePx = with(LocalDensity.current) { blockSize.toPx() }
+        val swipeableState = rememberSwipeableState(initialValue = Status.CLOSE)
+        var anchors = mapOf(0f to Status.CLOSE, blockSizePx to Status.OPEN)
+        Box(
+            modifier = Modifier
+                .height(40.dp)
+                .fillMaxWidth()
+//                .size(height = blockSize, width = blockSize * 2)
+                .background(Color.LightGray)
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset {
+                        IntOffset(swipeableState.offset.value.toInt(), 0)
+                    }
+                    .swipeable(
+                        state = swipeableState,
+                        anchors = mapOf(
+                            0f to Status.CLOSE,
+                            blockSizePx to Status.OPEN
+                        ),
+                        thresholds = { from, to ->
+                            if (from == Status.CLOSE) {
+                                FractionalThreshold(0.3f)
+                            } else {
+                                FractionalThreshold(0.5f)
+                            }
+                        },
+                        orientation = Orientation.Horizontal
+                    )
+                    .size(blockSize)
+                    .background(colors.onBackground)
+            ) {
+                Text("Swipeable", color = colors.onError, style = style)
+            }
+        }
+    }
+
+    @Composable
+    fun TransformerDemo(colors: Colors, style: TextStyle) {
+        var offset by remember { mutableStateOf(Offset.Zero) }
+        var ratationAngle by remember { mutableStateOf(0f) }
+        var scale by remember { mutableStateOf(1f) }
+        val transformableState = rememberTransformableState { zoomChange: Float, panChange: Offset, rotationChange: Float ->
+            scale *= zoomChange
+            offset += panChange
+            ratationAngle += rotationChange
+        }
+        Box(
+            Modifier
+                .width(55.dp)
+                .height(54.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier
+                .width(55.dp)
+                .height(54.dp)
+                .rotate(ratationAngle) // 需要注意 offset 与 rotate 的调用先后顺序
+                .offset {
+                    IntOffset(offset.x.roundToInt(), offset.y.roundToInt())
+                }
+                .scale(scale)
+                .background(Color.Cyan)
+                .transformable(
+                    state = transformableState,
+                    lockRotationOnZoomPan = false
+                ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Transformer", color = colors.onError, style = style)
+            }
+        }
+    }
+
+    @Composable
+    fun HorizontalListDemo(colors: Colors, style: TextStyle) {
+        val scrollState = rememberScrollState()
+        Surface(color = colors.error) {
+            Row(modifier = Modifier
+                .height(40.dp)
+                .width(55.dp)
+                .horizontalScroll(scrollState)) {
+                repeat(10) {
+                    Text("Horizontal $it ", color = colors.onError, style = style)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun HorizontalListTheme(colors: Colors, style: TextStyle) {
+        BloomTheme{
+            Surface(color = colors.secondaryVariant) {
+                val scrollState = rememberScrollState()
+                Row(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .width(55.dp)
+                        .offset(x = with(LocalDensity.current) {
+                            -scrollState.value.toDp()
+                        })
+                        .scrollable(scrollState, Orientation.Horizontal, reverseDirection = true)
+                ) {
+                    repeat(10) {
+                        Text("Horizontal $it ", color = colors.onError, style = style)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun DragGestureDemo(colors: Colors, style: TextStyle) {
+        var offset by remember { mutableStateOf(Offset.Zero) }
+        Box(contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .width(55.dp)
+                .height(54.dp)
+        ) {
+            Box(Modifier
+                .width(55.dp)
+                .height(54.dp)
+                .offset {
+                    IntOffset(offset.x.roundToInt(), offset.y.roundToInt())
+                }
+                .background(colors.error)
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            println("onDragStart 開始")
+                        },
+                        onDragEnd = {
+                            println("onDragEnd 結束")
+                        },
+                        onDragCancel = {
+                            println("onDragCancel 取消")
+                        },
+                        onDrag = { change: PointerInputChange, dragAmount: Offset ->
+                            println("onDrag 拖動中")
+                            offset += dragAmount
+                        }
+                    )
+                },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("DragGesture", color = colors.onError, style = style, textAlign = TextAlign.Center)
+            }
+        }
+    }
+
+//    @Composable
+//    fun ForEachGestureDemo(colors: Colors, style: TextStyle) {
+//        forEachGesture {
+//            awaitPointerEventScope {
+//                val event = awaitPointerEvent()
+//                Text("x: ${event.changes[0].position.x}, y: ${event.changes[0].position.y}", color = colors.onError, style = style, textAlign = TextAlign.Center)
+//            }
+//        }
+//    }
+
+    @Composable
+    fun NestedBoxDemo() {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(85.dp)
+                .background(Color.Red)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                    }
+                }
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(65.dp)
+                    .background(Color.Blue)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            awaitPointerEvent(PointerEventPass.Final)
+                        }
+                    }
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(45.dp)
+                        .background(Color.Green)
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                awaitPointerEvent(PointerEventPass.Initial)
+                            }
+                        }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(25.dp)
+                            .background(Color.Yellow)
+                            .pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    awaitPointerEvent(PointerEventPass.Main)
+                                }
+                            }
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun ConsumeDemo() {
+        var event : PointerEvent
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(85.dp)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        event = awaitPointerEvent(PointerEventPass.Initial)
+                        println("first layer, downChange: ${event.changes[0].consumed.downChange}")
+                    }
+                }
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(65.dp)
+                    .background(Color.Blue)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            event = awaitPointerEvent(PointerEventPass.Final)
+                            println("second layer, downChange: ${event.changes[0].consumed.downChange}")
+                        }
+                    }
+            ) {
+                Box(
+                    Modifier
+                        .size(45.dp)
+                        .background(Color.Green)
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                event = awaitPointerEvent()
+                                event.changes[0].consumeDownChange() // 消费手势事件
+                                println("third layer, downChange: ${event.changes[0].consumed.downChange}")
+                            }
+                        }
+                )
+            }
+        }
+    }
+
+    private suspend fun PointerInputScope.forEachGesture(block: suspend PointerInputScope.() -> Unit) {
+        val currentContext = currentCoroutineContext()
+        while (currentContext.isActive) {
+            try {
+                block()
+                // 挂起等待所有手指抬起
+                // awaitAllPointersUp()
+            } catch (e: CancellationException) {
+                if (currentContext.isActive) {
+                    // 手势事件取消时，如果协程还存活则等待手指抬起再进行下一轮监听
+                    // awaitAllPointersUp()
+                    throw e
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun BaseDragGestureDemo(colors: Colors, style: TextStyle) {
+        val boxSize = 85.dp
+        var offset by remember { mutableStateOf(Offset.Zero) }
+        Box(contentAlignment = Alignment.Center,
+            modifier = Modifier.size(boxSize)
+        ) {
+            Box(Modifier
+                .size(boxSize)
+                .offset {
+                    IntOffset(offset.x.roundToInt(), offset.y.roundToInt())
+                }
+                .background(colors.onError)
+                .pointerInput(Unit) {
+                    forEachGesture {
+                        awaitPointerEventScope {
+                            // 获取第一根手指的DOWN事件
+                            val downEvent = awaitFirstDown()
+                            // 根据手指标识符跟踪多痛手势
+                            drag(downEvent.id) {
+                                // 根据手势位置改变量更新偏移量状态
+                                offset += it.positionChange()
+                            }
+                        }
+                    }
+                }
+            ) {
+                Text("BaseDragGesture", color = colors.onBackground, style = style, textAlign = TextAlign.Center)
+            }
+        }
+    }
+
+    @Composable
+    fun AwaitDragOrCancellation(colors: Colors, style: TextStyle) {
+        val boxSize = 85.dp
+        var offset by remember { mutableStateOf(Offset.Zero) }
+        Box(Modifier
+            .size(boxSize)
+            .offset {
+                IntOffset(offset.x.roundToInt(), offset.y.roundToInt())
+            }
+            .background(colors.primarySurface)
+            .pointerInput(Unit) {
+                forEachGesture {
+                    awaitPointerEventScope {
+                        // 获取第一根手指的DOWN事件
+                        val downPointer = awaitFirstDown()
+                        while (true) {
+                            // 根据手指标识符跟踪拖动手势，手指抬起货拖动事件被消费时返回null
+                            val event = awaitDragOrCancellation(downPointer.id)
+                                ?: // 拖动事件被取消
+                                break
+                            if (event.changedToUp()) {
+                                // 所有手指均已抬起
+                                break
+                            }
+                            // 根据手势位置改变量更新偏移量状态
+                            offset += event.positionChange()
+                        }
+                    }
+                }
+            }
+        ) {
+            Text("AwaitDragOrCancellation", color = colors.onBackground, style = style, textAlign = TextAlign.Center)
+        }
+    }
 
     @Composable
     fun ActivityFour(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
@@ -4196,6 +4706,102 @@ class MainActivity : ComponentActivity(), SampleInterface {
             resources.getQuantityString(R.plurals.numberOfSongsAvailable, count, count)
         }
         Text(text = text)
+    }
+
+    @OptIn(ExperimentalMaterialApi::class)
+    @Composable
+    fun ActivityFive(context: Context, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    navigation()
+                                }
+                            }) {
+                            Icon(tint = colors.onError,
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = getString(CONTENT_DESCRIPTION)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.IO) {
+
+                                }
+                            }) {
+                            Icon(tint = colors.onError,
+                                imageVector = Icons.Default.Home,
+                                contentDescription = getString(CONTENT_DESCRIPTION)
+                            )
+                        }
+                    }, title = {
+                        Text(
+                            text = "ActivityFive",
+                            color = colors.onError,
+                        )
+                    }, actions = {
+                        IconButtonDemo(
+                            content = {
+                                IconButton(onClick = {
+                                }) {
+                                    Icon(Icons.Filled.Info, getString(CONTENT_DESCRIPTION), tint = Color.White)
+                                }
+                            },
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.Main) {
+                                }
+                            })
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
+                        Text(
+                            text = "更多",
+                            color = colors.onError,
+                            modifier = Modifier.clickable {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                }
+                            }
+                        )
+                    })
+            },
+            bottomBar = {
+                BottomAppBar(cutoutShape = MaterialTheme.shapes.small.copy(CornerSize(percent = 50))) {
+                    Text(
+                        text = "Bottom AppBar",
+                        color = colors.onError,
+                    )
+                    Spacer(Modifier.weight(1f, true))
+                    IconButton(
+                        onClick = {
+                            coroutineScope.launch(Dispatchers.IO) {
+
+                            }
+                        }) {
+                        Icon(Icons.Filled.Favorite, getString(CONTENT_DESCRIPTION), tint = colors.onError)
+                    }
+                }
+            },
+            floatingActionButton = {
+                ExtendedFloatingActionButton(
+                    text = { Text("Show") },
+                    onClick = {
+                        coroutineScope.launch(Dispatchers.IO) {
+
+                        }
+                    }
+                )
+            },
+            isFloatingActionButtonDocked = true,
+            floatingActionButtonPosition = FabPosition.End,
+        ) {
+            Column(modifier = Modifier.padding(it)) {
+                Row(modifier = Modifier.padding(4.dp, 0.dp)) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+            }
+        }
     }
 
     @Composable

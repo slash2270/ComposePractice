@@ -9,6 +9,7 @@ class Constants {
         val ROUTE_TWO = "TwoActivity"
         val ROUTE_THREE = "ThreeActivity"
         val ROUTE_FOUR = "FourActivity"
+        val ROUTE_FIVE = "FiveActivity"
     }
 
 }
