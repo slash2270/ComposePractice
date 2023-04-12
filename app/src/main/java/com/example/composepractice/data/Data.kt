@@ -1,5 +1,6 @@
 package com.example.composepractice.data
 
+import androidx.compose.material.Colors
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,6 +14,7 @@ data class Person(val name: String, val age: Int)
 data class Message(val author: String, val body: String)
 data class Elevations(val card: Dp = 0.dp, val default: Dp = 0.dp)
 data class ButtonState(var text: String, var textColor: Color, var buttonColor: Color)
+data class MemberItemData(var imageID: Int, var text:String)
 object SampleData {
     val conversationSample = listOf(
         Message(

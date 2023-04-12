@@ -19,6 +19,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -81,6 +84,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.paging.Pager
+import androidx.paging.compose.collectAsLazyPagingItems
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import com.example.composepractice.Constants.Companion.CONTENT_DESCRIPTION
@@ -170,7 +175,10 @@ class MainActivity : ComponentActivity(), SampleInterface {
             },
             content = {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(Color.LightGray).padding(it)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.LightGray)
+                        .padding(it)
                 ) { // 作为父级附加到嵌套滚动系统)
                     repeat(1) {
                         Column {
@@ -178,11 +186,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 Greeting(coroutineScope = coroutineScope, name = "Preview Composable")
                             }
                             Row(horizontalArrangement = Arrangement.SpaceAround) {
-                                Row(modifier = Modifier.padding(all = 4.dp).clickable {
-                                    coroutineScope.launch(Dispatchers.Main) {
-                                        TouristGuide.toWelcome()
-                                    }
-                                }) {
+                                Row(modifier = Modifier
+                                    .padding(all = 4.dp)
+                                    .clickable {
+                                        coroutineScope.launch(Dispatchers.Main) {
+                                            navController.navigate(route = ROUTE_FIVE) {
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    }) {
                                     val modifier1 = Modifier
                                         .size(40.dp)
                                         .clip(CircleShape)
@@ -3636,7 +3648,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     private fun Offset.toIntOffset() = IntOffset(x.roundToInt(), y.roundToInt())
 
-    @OptIn(ExperimentalMaterialApi::class)
+    @OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
     @Composable
     fun ActivityThree(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, style: TextStyle, navigation: () -> Unit) {
         val scaffoldState = rememberBackdropScaffoldState(initialValue = BackdropValue.Concealed)
@@ -3671,12 +3683,41 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 )
             },
             backLayerContent = {
-                Text("BackLayer Header", color = colors.onPrimary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
-                Divider()
-                repeat(20) {
-                    Text("BackLayer List", color = colors.onPrimary, modifier = Modifier
-                        .padding(4.dp)
-                        .clickable { }, fontSize = 10.sp)
+                val list = listOf(
+                    MemberItemData(R.drawable.ic_dark_logo, "dark logo"),
+                    MemberItemData(R.drawable.ic_light_logo, "light logo"),
+                    MemberItemData(R.drawable.ic_dark_welcome_bg, "dark bg"),
+                    MemberItemData(R.drawable.ic_light_welcome_bg, "light bg"),
+                    MemberItemData(R.drawable.ic_dark_welcome_illos, "dark illos"),
+                    MemberItemData(R.drawable.ic_light_welcome_illos, "light illos"),
+                    MemberItemData(R.drawable.ic_account_circle, "account circle"),
+                    MemberItemData(R.drawable.ic_done, "done"),
+                    MemberItemData(R.drawable.ic_favorite_border, "favorite border"),
+                    MemberItemData(R.drawable.ic_filter_list, "filter list"),
+                    MemberItemData(R.drawable.ic_shopping_cart, "shopping cart"),
+                    MemberItemData(R.drawable.ic_search, "search"),
+                    MemberItemData(R.drawable.ic_home, "home"),
+                    MemberItemData(R.drawable.ic_launcher_foreground, "launcher foreground"),
+                    MemberItemData(R.drawable.ic_launcher_background, "launcher background"),
+                    MemberItemData(R.drawable.ic_launcher_background, "launcher background"),
+                    MemberItemData(R.drawable.ic_launcher_background, "launcher background"),
+                    MemberItemData(R.drawable.ic_launcher_background, "launcher background"),
+                    MemberItemData(R.drawable.ic_launcher_background, "launcher background"),
+                    MemberItemData(R.drawable.ic_launcher_background, "launcher background"),
+                )
+                Row {
+                    Column(modifier = Modifier.width(125.dp)) {
+                        Text("BackLayer Header", color = colors.onPrimary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                        Divider()
+                        ListWithHeader(colors = colors, style = style)
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    LazyVerticalGridSample(list = list, colors = colors, style = style)
+                    Spacer(modifier = Modifier.width(4.dp))
+//                    list.forEach {
+//                        val pager = Pager<0, it>()
+//                        PagingDemo(pager = pager, colors = colors, style = style)
+//                    }
                 }
             },
             frontLayerContent = {
@@ -4600,11 +4641,157 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
+    fun Contributors(colors: Colors, style: TextStyle) {
+        Column{
+            MemberItem(colors = colors, style = style, R.drawable.ic_dark_logo, text = "dark logo")
+            MemberItem(colors = colors, style = style, R.drawable.ic_dark_welcome_bg, "dark bg")
+            MemberItem(colors = colors, style = style, R.drawable.ic_dark_welcome_illos, text = "dark illos")
+            MemberItem(colors = colors, style = style, R.drawable.ic_light_logo, "light logo")
+            MemberItem(colors = colors, style = style, R.drawable.ic_light_welcome_bg, "light bg")
+            MemberItem(colors = colors, style = style, R.drawable.ic_light_welcome_illos, "light illos")
+        }
+    }
+
+    @Composable
+    fun TouchFish(colors: Colors, style: TextStyle) {
+        for(index in 0..10) MemberItem(colors = colors, style = style, androidx.benchmark.R.drawable.logo, text = "logo")
+    }
+
+    @Composable
+    fun MemberItem(colors: Colors, style: TextStyle, imageID: Int, text:String){
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            Surface(
+                shape = CircleShape,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Image(painter = painterResource(imageID), contentDescription = null)
+            }
+            Spacer(Modifier.padding(horizontal = 8.dp))
+            Text(text = text, style = style, fontWeight = FontWeight.W500, color = colors.onError)
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                IconButton(
+                    onClick = {  }
+                ) {
+                    Icon(Icons.Filled.Email, null, tint = colors.primarySurface)
+                }
+            }
+        }
+    }
+
+    @ExperimentalFoundationApi
+    @Composable
+    fun ListWithHeader(colors: Colors, style: TextStyle) {
+        val sections = listOf("item 1", "item 2", "item 3", "item 4", "item 5", "item 6", "item 7", "item 8", "item 9", "item 10")
+        Column(modifier = Modifier.width(125.dp)) {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "List Header",
+                        style = style
+                    )
+                },
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                actions = {
+                    IconButton(
+                        onClick = {  }
+                    ) {
+                        Icon(Icons.Filled.Search, null)
+                    }
+                },
+                backgroundColor = colors.onError
+            )
+            LazyColumn {
+                sections.forEachIndexed{ index, section ->
+                    stickyHeader {
+                        Text(
+                            text = section,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF2F4FB))
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                            fontWeight = FontWeight.W700,
+                            color = Color(0xFF00AAFF),
+                            style = style
+                        )
+                    }
+                    when(index){
+                        0 -> item{Contributors(colors, style)}
+                        1 -> item{TouchFish(colors, style)}
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun LazyVerticalGridSample(list: List<MemberItemData>, colors: Colors, style: TextStyle) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+            modifier = Modifier.width(125.dp)
+        ) {
+            item(span = {
+                // this上下文为LazyGridItemSpanScope
+                GridItemSpan(this.maxLineSpan)
+            }) {
+                Text(text = "LazyVerticalGrid", textAlign = TextAlign.Center)
+            }
+            list.forEach {
+                item {
+                    GridItem(colors = colors, imageID = it.imageID, text = it.text, style = style)
+                }   
+            }
+        }
+    }
+
+    @Composable
+    fun GridItem(colors: Colors, imageID: Int, text:String, style: TextStyle) {
+        Surface(contentColor = colors.primaryVariant, modifier = Modifier
+            .fillMaxSize()
+            .clickable {
+
+            }) {
+            Box(contentAlignment = Alignment.Center) {
+                Image(painter = painterResource(imageID), contentDescription = null)
+                Text(text = text, style = style, fontWeight = FontWeight.W500, color = colors.onError)
+            }
+        }
+    }
+
+    @Composable
+    fun PagingDemo(pager: Pager<Int, MemberItemData>, colors: Colors, style: TextStyle) {
+        val lazyPagingItems = pager.flow.collectAsLazyPagingItems()
+        LazyColumn(modifier = Modifier.width(125.dp)) {
+            items(lazyPagingItems.itemCount) {
+                Surface(contentColor = colors.secondaryVariant, modifier = Modifier
+                    .fillMaxSize()
+                    .clickable {
+
+                    }) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Image(painter = painterResource(lazyPagingItems[it]!!.imageID), contentDescription = null)
+                        Text(text = lazyPagingItems[it]!!.text, style = style, fontWeight = FontWeight.W500, color = colors.onError)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
     fun ActivityFour(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
         val toolbarHeight = 200.dp // 定义 ToolBar 的高度
         val maxUpPx = with(LocalDensity.current) { toolbarHeight.roundToPx().toFloat() - 56.dp.roundToPx().toFloat() } // ToolBar 最大向上位移量 56.dp 参考自 androidx.compose.material AppBar.kt 里面定义的 private val AppBarHeight = 56.dp
         val minUpPx = 0f // ToolBar 最小向上位移量
-        val toolbarOffsetHeightPx = remember { mutableStateOf(0f) } // 偏移折叠工具栏上移高度
+        var toolbarOffsetHeightPx = remember { mutableStateOf(0f) } // 偏移折叠工具栏上移高度
         val nestedScrollConnection = remember {
             object : NestedScrollConnection {
                 override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -4617,8 +4804,18 @@ class MainActivity : ComponentActivity(), SampleInterface {
             }
         }
         var selectedItem by remember { mutableStateOf(0) }
-        val listTitle = listOf("主頁", "喜歡", "設置")
-        val listIcon = listOf(Icons.Filled.Home, Icons.Filled.Favorite, Icons.Filled.Settings)
+        val listTitle = listOf("主頁","資訊","喜歡", "設置")
+        val listIcon = listOf(Icons.Filled.Home, Icons.Filled.Info, Icons.Filled.Favorite, Icons.Filled.Settings)
+        val listState = rememberLazyListState()
+        // 添加一个用于是否显示按钮的代码 如果第一个可见的项目已经被移动过去，就显示这个按钮。
+        val showButton by remember {
+            derivedStateOf { // 尽量减少不必要的合成
+                listState.firstVisibleItemIndex > 0
+            }
+        }
+        AnimatedVisibility(visible = showButton) {
+            toolbarOffsetHeightPx = InitFab(coroutineScope = coroutineScope, listState = listState, toolbarOffsetHeightPx = toolbarOffsetHeightPx)
+        }
         Scaffold(
             topBar = {
                 ScrollableAppBar(
@@ -4631,25 +4828,33 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 )
             },
             content = {
+                // 添加一个用于是否显示按钮的代码 如果第一个可见的项目已经被移动过去，就显示这个按钮。
                 Surface(color = colors.primarySurface) {
-                    Column(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(it)
-                            .nestedScroll(nestedScrollConnection) // 作为父级附加到嵌套滚动系统
-                    ) {
+                    Box {
+                        Column(
+                            Modifier
+                                .fillMaxSize()
+                                .padding(it)
+                                .nestedScroll(nestedScrollConnection) // 作为父级附加到嵌套滚动系统
+                        ) {
 //                 列表带有内置的嵌套滚动支持，它将通知我们它的滚动
-                        LazyColumn {
-                            items(100) { index ->
-                                Text("I'm item $index", modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp, 12.dp))
-                                Divider(color = colors.onBackground)
+                            LazyColumn(state = listState) {
+                                items(100) { index ->
+                                    Text("I'm item $index", modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp, 12.dp))
+                                    Divider(color = colors.onBackground)
+                                }
                             }
                         }
                     }
                 }
             },
+            floatingActionButton = {
+                toolbarOffsetHeightPx = InitFab(coroutineScope = coroutineScope, listState = listState, toolbarOffsetHeightPx = toolbarOffsetHeightPx)
+            },
+            isFloatingActionButtonDocked = true,
+            floatingActionButtonPosition = FabPosition.End,
             bottomBar = {
                 BottomNavigation {
                     listTitle.forEachIndexed { index, item ->
@@ -4666,8 +4871,23 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         )
                     }
                 }
+            },
+        )
+    }
+
+    @Composable
+    fun InitFab(coroutineScope: CoroutineScope, listState: LazyListState, toolbarOffsetHeightPx: MutableState<Float>): MutableState<Float> {
+        ExtendedFloatingActionButton(
+//            modifier = Modifier.offset(280.dp, 405.dp),
+            text = { Text("FAB") },
+            onClick = {
+                coroutineScope.launch(Dispatchers.Main) {
+                    listState.animateScrollToItem(0)
+                    toolbarOffsetHeightPx.value = 0.0f
+                }
             }
         )
+        return toolbarOffsetHeightPx
     }
 
     @Composable
@@ -4708,7 +4928,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
         Text(text = text)
     }
 
-    @OptIn(ExperimentalMaterialApi::class)
+    @OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
     @Composable
     fun ActivityFive(context: Context, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
         Scaffold(
@@ -4766,38 +4986,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         )
                     })
             },
-            bottomBar = {
-                BottomAppBar(cutoutShape = MaterialTheme.shapes.small.copy(CornerSize(percent = 50))) {
-                    Text(
-                        text = "Bottom AppBar",
-                        color = colors.onError,
-                    )
-                    Spacer(Modifier.weight(1f, true))
-                    IconButton(
-                        onClick = {
-                            coroutineScope.launch(Dispatchers.IO) {
-
-                            }
-                        }) {
-                        Icon(Icons.Filled.Favorite, getString(CONTENT_DESCRIPTION), tint = colors.onError)
-                    }
-                }
-            },
-            floatingActionButton = {
-                ExtendedFloatingActionButton(
-                    text = { Text("Show") },
-                    onClick = {
-                        coroutineScope.launch(Dispatchers.IO) {
-
-                        }
-                    }
-                )
-            },
-            isFloatingActionButtonDocked = true,
-            floatingActionButtonPosition = FabPosition.End,
         ) {
             Column(modifier = Modifier.padding(it)) {
-                Row(modifier = Modifier.padding(4.dp, 0.dp)) {
+                Row(modifier = Modifier.padding(4.dp, 4.dp)) {
                     Spacer(modifier = Modifier.width(4.dp))
                 }
             }
