@@ -3,6 +3,7 @@ package com.example.composepractice.view
 //import androidx.window.core.layout.WindowSizeClass
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.*
 import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
@@ -48,9 +49,10 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.drawscope.inset
-import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -84,8 +86,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.paging.Pager
-import androidx.paging.compose.collectAsLazyPagingItems
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import com.example.composepractice.Constants.Companion.CONTENT_DESCRIPTION
@@ -102,12 +102,16 @@ import com.example.composepractice.ui.theme.BloomTheme
 import com.example.composepractice.ui.theme.ComposePracticeTheme
 import com.example.composepractice.ui.theme.ComposeTutorialTheme
 import com.example.composepractice.ui.theme.Shapes
+import com.google.accompanist.pager.ExperimentalPagerApi
+import com.google.accompanist.pager.HorizontalPager
+import com.google.accompanist.pager.rememberPagerState
 import com.skydoves.landscapist.coil.CoilImage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.parcelize.Parcelize
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.ranges.coerceAtLeast
@@ -3705,19 +3709,19 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     MemberItemData(R.drawable.ic_launcher_background, "launcher background"),
                     MemberItemData(R.drawable.ic_launcher_background, "launcher background"),
                 )
-                Row {
-                    Column(modifier = Modifier.width(125.dp)) {
-                        Text("BackLayer Header", color = colors.onPrimary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
-                        Divider()
-                        ListWithHeader(colors = colors, style = style)
+                Column {
+                    HorizontalPager(list = list, colors = colors, style = style)
+                    Row {
+                        Column(modifier = Modifier.width(125.dp)) {
+                            Text("BackLayer Header", color = colors.onPrimary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                            Divider()
+                            ListWithHeader(colors = colors, style = style)
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        LazyVerticalGridSample(list = list, colors = colors, style = style)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        ListItemKey(colors = colors, style = style)
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    LazyVerticalGridSample(list = list, colors = colors, style = style)
-                    Spacer(modifier = Modifier.width(4.dp))
-//                    list.forEach {
-//                        val pager = Pager<0, it>()
-//                        PagingDemo(pager = pager, colors = colors, style = style)
-//                    }
                 }
             },
             frontLayerContent = {
@@ -4743,7 +4747,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 // this上下文为LazyGridItemSpanScope
                 GridItemSpan(this.maxLineSpan)
             }) {
-                Text(text = "LazyVerticalGrid", textAlign = TextAlign.Center)
+                Text(text = "LazyVerticalGrid", textAlign = TextAlign.Center, fontSize = 14.sp)
             }
             list.forEach {
                 item {
@@ -4767,24 +4771,86 @@ class MainActivity : ComponentActivity(), SampleInterface {
         }
     }
 
-    @Composable
-    fun PagingDemo(pager: Pager<Int, MemberItemData>, colors: Colors, style: TextStyle) {
-        val lazyPagingItems = pager.flow.collectAsLazyPagingItems()
-        LazyColumn(modifier = Modifier.width(125.dp)) {
-            items(lazyPagingItems.itemCount) {
-                Surface(contentColor = colors.secondaryVariant, modifier = Modifier
-                    .fillMaxSize()
-                    .clickable {
+//    @Composable
+//    fun PagingDemo(pager: Pager<Int, MemberItemData>, colors: Colors, style: TextStyle) {
+//        val lazyPagingItems = pager.flow.collectAsLazyPagingItems()
+//        LazyColumn(modifier = Modifier.width(125.dp)) {
+//            items(lazyPagingItems.itemCount) {
+//                Surface(contentColor = colors.secondaryVariant, modifier = Modifier
+//                    .fillMaxSize()
+//                    .clickable {
+//
+//                    }) {
+//                    Box(contentAlignment = Alignment.Center) {
+//                        Image(painter = painterResource(lazyPagingItems[it]!!.imageID), contentDescription = null)
+//                        Text(text = lazyPagingItems[it]!!.text, style = style, fontWeight = FontWeight.W500, color = colors.onError)
+//                    }
+//                }
+//            }
+//        }
+//    }
 
-                    }) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Image(painter = painterResource(lazyPagingItems[it]!!.imageID), contentDescription = null)
-                        Text(text = lazyPagingItems[it]!!.text, style = style, fontWeight = FontWeight.W500, color = colors.onError)
-                    }
-                }
+    @OptIn(ExperimentalPagerApi::class)
+    @Composable
+    fun HorizontalPager(list: List<MemberItemData>, colors: Colors, style: TextStyle) {
+        val state = rememberPagerState(initialPage = 0)
+        Column {
+            HorizontalPager(count = list.size, state = state, modifier = Modifier.height(56.dp)) { pager ->
+                val item = list[pager]
+                GridItem(colors, item.imageID, item.text, style)
+            }
+            Indicator(size = list.size, index = state.currentPage)
+        }
+    }
+
+    @Composable
+    private fun IndicatorHorizontal(isSelected: Boolean) {
+        val width = animateDpAsState(
+            targetValue = if (isSelected) 30.dp else 10.dp,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy)
+        )
+        Box(
+            modifier = Modifier
+                .height(10.dp)
+                .width(width.value)
+                .clip(CircleShape)
+                .background(if (isSelected) Color.Black else Color.LightGray)
+        )
+    }
+
+    @Composable
+    private fun Indicator(size: Int, index: Int) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            repeat(size) {
+                IndicatorHorizontal(it == index)
             }
         }
     }
+
+    @Composable
+    fun ListItemKey(colors: Colors, style: TextStyle) {
+        val list = ArrayList<MemberItemIdData>()
+        for(index in 0..20) {
+            list.add(MemberItemIdData(index, androidx.benchmark.R.drawable.logo, text = "logo"))
+        }
+        LazyColumn(modifier = Modifier.width(125.dp)) {
+            item {
+                Text("List ItemKey", color = colors.onPrimary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+            }
+            items(
+                items = list,
+                key = { memberItem -> // 返回 item 的一个稳定的且唯一的键
+                    memberItem.id
+                }
+            ) { item ->
+                MemberItem(colors = colors, style = style, imageID = item.imageID, text = item.text)
+            }
+        }
+    }
+
 
     @Composable
     fun ActivityFour(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
@@ -4836,15 +4902,27 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 .fillMaxSize()
                                 .padding(it)
                                 .nestedScroll(nestedScrollConnection) // 作为父级附加到嵌套滚动系统
-                        ) {
-//                 列表带有内置的嵌套滚动支持，它将通知我们它的滚动
+                        ) { // 列表带有内置的嵌套滚动支持，它将通知我们它的滚动
                             LazyColumn(state = listState) {
                                 items(100) { index ->
                                     Text("I'm item $index", modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(8.dp, 12.dp))
+                                        .padding(8.dp, 12.dp)
+                                        .clickable {
+
+                                        }
+                                    )
                                     Divider(color = colors.onBackground)
                                 }
+                            }
+                            LaunchedEffect(listState) {
+                                snapshotFlow { listState.firstVisibleItemIndex }
+                                    .map { index -> index > 0 }
+                                    .distinctUntilChanged()
+                                    .filter { it == true }
+                                    .collect {
+                                        Toast.makeText(context, "SnapShotFlow", Toast.LENGTH_SHORT).show()
+                                    }
                             }
                         }
                     }
@@ -4854,7 +4932,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 toolbarOffsetHeightPx = InitFab(coroutineScope = coroutineScope, listState = listState, toolbarOffsetHeightPx = toolbarOffsetHeightPx)
             },
             isFloatingActionButtonDocked = true,
-            floatingActionButtonPosition = FabPosition.End,
+            floatingActionButtonPosition = FabPosition.Center,
             bottomBar = {
                 BottomNavigation {
                     listTitle.forEachIndexed { index, item ->
@@ -4928,6 +5006,304 @@ class MainActivity : ComponentActivity(), SampleInterface {
         Text(text = text)
     }
 
+//    @InternalComposeApi
+//    @Composable
+//    fun BottomNavigationTwo(homeViewModel:HomeViewModel){
+//        val applyContext = currentComposer.applyCoroutineContext
+//        val clickTrue = remember { mutableStateOf(false) }
+//        val mCurAnimValueColor = remember { Animatable(1f) }
+//        val animalBooleanState: Float by animateFloatAsState(
+//            if (homeViewModel.animalBoolean.value) {
+//                0f
+//            } else {
+//                1f
+//            }, animationSpec = TweenSpec(durationMillis = 600),
+//            finishedListener = {
+//                if (it>=0.9f&&clickTrue.value){
+//                    homeViewModel.animalBoolean.value = !homeViewModel.animalBoolean.value
+//                }
+//            }
+//        )
+//        val stiffness = 100f
+//        val animalScaleCanvasWidthValue: Float by animateFloatAsState(
+//            if (!clickTrue.value) {
+//                0f
+//            } else {
+//                30f
+//            },
+//            animationSpec = SpringSpec(stiffness = stiffness),
+//        )
+//        val animalScaleCanvasHeightValue: Float by animateFloatAsState(
+//            if (!clickTrue.value) {
+//                0f
+//            } else {
+//                30f
+//            },
+//            animationSpec = SpringSpec(stiffness = stiffness),
+//        )
+//        val mCurAnimalHeight: Float by animateFloatAsState(
+//            if (!clickTrue.value) {
+//                -30f
+//            } else {
+//                30f
+//            },
+//            animationSpec = SpringSpec(stiffness = stiffness),
+//        )
+//
+//        val mCurAnimValueY: Float by animateFloatAsState(
+//            if (!clickTrue.value) {
+//                0f
+//            } else {
+//                1f
+//            }, animationSpec = SpringSpec(stiffness = stiffness),
+//            finishedListener = {
+//                if (it >= 0.9f && clickTrue.value) {
+//                    CoroutineScope(applyContext).launch {
+//                        mCurAnimValueColor.animateTo(
+//                            0f,
+//                            animationSpec = SpringSpec(stiffness = stiffness)
+//                        )
+//                    }
+//                }
+//                if (it <= 0.01f && !clickTrue.value) {
+//                    CoroutineScope(applyContext).launch {
+//                        mCurAnimValueColor.animateTo(
+//                            1f,
+//                            animationSpec = SpringSpec(stiffness = stiffness)
+//                        )
+//                    }
+//                }
+//                //动画结束->回归原来位置
+//                if (it > 0.9f && clickTrue.value) {
+//                    clickTrue.value = !clickTrue.value
+//                }
+//            }
+//            //TweenSpec(durationMillis = 1600)
+//            // DurationBasedAnimationSpec, FloatSpringSpec, FloatTweenSpec, KeyframesSpec, RepeatableSpec, SnapSpec, SpringSpec, TweenSpec
+//        )
+//
+//        //半径的决定动画
+//        val mCurAnimValue: Float by animateFloatAsState(
+//            if (clickTrue.value) {
+//                0f
+//            } else {
+//                1f
+//            }, animationSpec = SpringSpec(dampingRatio = 1f, stiffness = 30f)
+//        )
+//        Box(contentAlignment = Alignment.BottomCenter,
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .fillMaxHeight()
+//        ) {
+//
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(100.dp)
+//                    .clickable() {}
+//            ) {
+//                androidx.compose.foundation.Canvas(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .fillMaxHeight()
+//                ) {
+//                    drawIntoCanvas { canvas ->
+//                        //绘制底部曲线到底部
+//                        canvas.translate(0f, size.height)
+//                        canvas.scale(1f, -1f)
+//                        val paint = androidx.compose.ui.graphics.Paint()
+//                        paint.strokeWidth = 2f
+//                        paint.style = PaintingStyle.Fill
+//                        paint.color = Color(245, 215, 254, 255)
+//
+//                        val height = 276f
+//                        val cicleHeight = height / 3
+//                        val ScaleHeight = animalScaleCanvasHeightValue
+//                        val ScaleWidth = animalScaleCanvasWidthValue
+//                        //控制脖子左边,一直在变化
+//                        val path = Path()
+//                        path.moveTo(0f + ScaleWidth, 0f)
+//                        path.lineTo(0f + ScaleWidth, height - cicleHeight + ScaleHeight)
+//                        path.quadraticBezierTo(
+//                            0f + ScaleWidth,
+//                            height + ScaleHeight,
+//                            cicleHeight,
+//                            height + ScaleHeight
+//                        )
+//
+//
+//                        //第一个左弧度
+//                        path.lineTo(size.width - cicleHeight - ScaleWidth, height + ScaleHeight)
+//                        path.quadraticBezierTo(
+//                            size.width - ScaleWidth,
+//                            height + ScaleHeight,
+//                            size.width - ScaleWidth,
+//                            height - cicleHeight + ScaleHeight
+//                        )
+//                        path.lineTo(size.width - ScaleWidth, 0f)
+//                        path.close()
+//                        canvas.drawPath(path, paint)
+////--------------------------------------------------------------------------
+//                        canvas.save()
+//                        //中间凸起部分
+//                        val centerHdX =
+//                            size.width / 3 / 2 + size.width / 3 * homeViewModel.position.value!!
+//                        //这里坐标系位置圆点就为上边线中点
+//                        canvas.translate(centerHdX, height)
+//                        val R = 30f
+//                        //0-50是变大部分
+//                        val RH = mCurAnimalHeight
+//                        //50到-50是变为平
+//                        val p0 = Offset(-R, 0f + RH + animalScaleCanvasHeightValue)
+//                        val p1 = Offset(-R, R + RH + animalScaleCanvasHeightValue)
+//                        val p3 = Offset(0f, 2 * R - 30f + RH + animalScaleCanvasHeightValue)
+//                        val p5 = Offset(R, R + RH + animalScaleCanvasHeightValue)
+//                        val p6 = Offset(R, 0f + RH + animalScaleCanvasHeightValue)
+//                        val p7 = Offset(100f, -10f + animalScaleCanvasHeightValue)
+//
+//                        val pathCub = Path()
+//                        pathCub.moveTo(-100f, 0f + animalScaleCanvasHeightValue)
+//                        pathCub.cubicTo(p0.x, p0.y, p1.x, p1.y, p3.x, p3.y)
+//                        pathCub.cubicTo(p5.x, p5.y, p6.x, p6.y, p7.x, p7.y)
+//
+//                        canvas.drawPath(pathCub, paint)
+//
+//
+//                        //中间凸起部分落下
+//                        canvas.restore()
+//
+////--------------------------------------------------------------------------
+//
+//                        //绘制弹性圆球
+//                        //假设点击的是index=0一共三个底部按钮
+//                        canvas.save()
+//                        //1,2,3
+//                        //将坐标系移动到点击部位()这样写起来比较爽好理解。将点击部位作为我们的坐标系园点
+//                        val centerX =
+//                            size.width / 3 / 2 + size.width / 3 * homeViewModel.position.value!!
+//                        Log.e("圆点", "LoginPage: $centerX")
+//                        canvas.translate(centerX, height * 2 / 3.2f)
+//                        //canvas.drawCircle(Offset(0f, 0f), 100f, paint)
+//                        //这里我们清楚坐标圆点之后我们进行绘制我们的圆
+//                        val r = 100f - 50 * (1 - mCurAnimValue)
+//                        //圆的坐标和中心点的坐标计算
+//                        //1.首先 原点为(0f,0f)且半径r=100f--->那么p6(0f,r),p5=(r/2,r),p4(r,r/2),p3(r,0f)
+//                        //2.第二象限里面 p2(r,-r/2),p1(r/2,-r),p0(0f,r)
+//                        //3.第三象限里面 p11(-r/2,-r),p10(-r,-r/2),p9(-r,0f)
+//                        //4.第四象限里面 p8(-r,r/2),p7(r/2,r),p6(0f,r)
+//                        Log.e("mCurAnimValueY", "LoginPage=: $mCurAnimValueY")
+//                        val moveTopHeight = mCurAnimValueY * 250f
+//                        val P0 = Offset(0f, -r + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P1 = Offset(r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P2 = Offset(r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P3 = Offset(r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P4 = Offset(r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P5 = Offset(r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P6 = Offset(0f, r + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P7 = Offset(-r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P8 = Offset(-r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P9 = Offset(-r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P10 = Offset(-r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+//                        val P11 = Offset(-r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
+//
+//                        val heightController = 180f
+//                        val pathReult = Path()
+//                        pathReult.moveTo(P0.x, P0.y - heightController * mCurAnimValue)
+//                        //p1->p2->p3
+//                        pathReult.cubicTo(
+//                            P1.x,
+//                            P1.y - 30 * mCurAnimValue,
+//                            P2.x,
+//                            P2.y - 30 * mCurAnimValue,
+//                            P3.x,
+//                            P3.y
+//                        )
+//                        //p4->p5->p6
+//                        pathReult.cubicTo(P4.x, P4.y, P5.x, P5.y, P6.x, P6.y)
+//                        //p7->p8->p9
+//                        pathReult.cubicTo(P7.x, P7.y, P8.x, P8.y, P9.x, P9.y)
+//                        //p10->p11->p0
+//                        pathReult.cubicTo(
+//                            P10.x,
+//                            P10.y - 30 * mCurAnimValue,
+//                            P11.x,
+//                            P11.y - 30 * mCurAnimValue,
+//                            P0.x,
+//                            P0.y - heightController * mCurAnimValue
+//                        )
+//                        pathReult.close()
+//                        //
+//                        paint.color = Color(245, 215, 254, mCurAnimValueColor.value.toInt() * 255)
+//                        //canvas.drawPath(pathReult, paint)
+//                    }
+//
+//                }
+//            }
+//
+//            Row(
+//                modifier = Modifier.fillMaxWidth().height(200.dp), horizontalArrangement = Arrangement.SpaceAround,verticalAlignment = Alignment.Bottom
+//            ) {
+//                Image(
+//                    bitmap = getBitmap(resource = R.drawable.home),
+//                    contentDescription = "1",
+//                    modifier = Modifier
+//                        .modifiers(homeViewModel.position.value, 0, animalBooleanState)
+//                        .clickable {
+//                            homeViewModel.positionChanged(0)
+//                            clickTrue.value = !clickTrue.value
+//                            homeViewModel.animalBoolean.value = !homeViewModel.animalBoolean.value
+//                        }
+//                )
+//
+//                Image(
+//                    bitmap = getBitmap(resource = R.drawable.center),
+//                    contentDescription = "1",
+//                    modifier = Modifier
+//                        .modifiers(homeViewModel.position.value, 1, animalBooleanState)
+//                        .clickable {
+//                            homeViewModel.positionChanged(1)
+//                            clickTrue.value = !clickTrue.value
+//                            homeViewModel.animalBoolean.value = !homeViewModel.animalBoolean.value
+//
+//                        }
+//                )
+//                Image(
+//                    bitmap = getBitmap(resource = R.drawable.min),
+//                    contentDescription = "1",
+//                    modifier = Modifier
+//                        .modifiers(homeViewModel.position.value, 2, animalBooleanState)
+//                        .clickable {
+//                            homeViewModel.positionChanged(2)
+//                            clickTrue.value = !clickTrue.value
+//                            homeViewModel.animalBoolean.value = !homeViewModel.animalBoolean.value
+//                        }
+//                )
+//
+//            }
+//
+//        }
+//
+//    }
+//
+//    fun Modifier.modifiers(
+//        animalCenterIndex: Int?,
+//        i: Int,
+//        animalBooleanState: Float
+//    ): Modifier {
+//        Log.e("currentValue=", "modifiers: "+animalCenterIndex.toString()+"=="+i )
+//        return if (animalCenterIndex == i) {
+//            Modifier
+//                .padding(bottom = 35.dp + (animalBooleanState * 100).dp)
+//                .width(25.dp)
+//                .height(25.dp)
+//        } else {
+//            return  Modifier
+//                .padding(bottom = 35.dp - (animalBooleanState * 10).dp)
+//                .width(25.dp)
+//                .height(25.dp)
+//        }
+//    }
+
     @OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
     @Composable
     fun ActivityFive(context: Context, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
@@ -4987,13 +5363,451 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     })
             },
         ) {
-            Column(modifier = Modifier.padding(it)) {
-                Row(modifier = Modifier.padding(4.dp, 4.dp)) {
-                    Spacer(modifier = Modifier.width(4.dp))
+            Row {
+                Box(modifier = Modifier.width(180.dp).height(350.dp)) {
+                    InkColorCanvasRule()
+                }
+                Box(modifier = Modifier.width(180.dp).height(350.dp)) {
+                    InkColorCanvasIrregular()
+                }
+            }
+            Column(modifier = Modifier
+                .padding(it)
+                .padding(8.dp, 12.dp)) {
+                Row {
+                    val size = 50.dp
+                    DrawColorRing(size)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    DrawContent(size)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    DrawBehind(size)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    DrawBorder(size)
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+//                InkColorCanvas()
+//                Row(modifier = Modifier.height(160.dp)) {
+//                    Box(modifier = Modifier.weight(1.0f)) {
+//                        InkColorCanvas()
+//                    }
+//                    InkColorCanvas()
+//                    Spacer(modifier = Modifier.width(8.dp))
+//                    Box(modifier = Modifier.weight(1.0f)) {
+//                        InkColorCanvasRule()
+//                    }
+//                    InkColorCanvasRule()
+//                    Spacer(modifier = Modifier.width(8.dp))
+//                    Box(modifier = Modifier.weight(1.0f)) {
+//                        InkColorCanvasIrregular()
+//                    }
+//                }
+            }
+        }
+    }
+
+    @Composable
+    fun DrawColorRing(size: Dp) {
+        Box(
+            modifier = Modifier.size(size),
+            contentAlignment = Alignment.Center
+        ) {
+            val radius = 50.dp
+            val ringWidth = 5.dp
+            Canvas(modifier = Modifier.size(radius)) {
+                this.drawCircle( // 画圆
+                    brush = Brush.sweepGradient(listOf(Color.Red, Color.Green, Color.Red), Offset(radius.toPx() / 2f, radius.toPx() / 2f)),
+                    radius = radius.toPx() / 2f,
+                    style = Stroke(
+                        width = ringWidth.toPx()
+                    )
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun DrawContent(size: Dp) {
+        Box(
+            modifier = Modifier.size(size),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(8.dp)
+                ,modifier = Modifier
+                    .fillMaxSize()
+                    .drawWithContent {
+                        drawContent()
+                        drawCircle(
+                            Color(0xffe7614e),
+                            18.dp.toPx() / 2,
+                            center = Offset(drawContext.size.width, 0f)
+                        )
+                    }
+            ) {
+                Image(painter = painterResource(id = R.drawable.logo), contentDescription = "Diana")
+            }
+        }
+    }
+
+    @Composable
+    fun DrawBehind(size: Dp) {
+        Box(
+            modifier = Modifier.size(size),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(8.dp)
+                ,modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        drawCircle(
+                            Color(0xffe7614e),
+                            18.dp.toPx() / 2,
+                            center = Offset(drawContext.size.width, 0f)
+                        )
+                    }
+            ) {
+                Image(painter = painterResource(id = R.drawable.logo), contentDescription = "Diana")
+            }
+        }
+    }
+
+    @Composable
+    fun DrawBorder(size: Dp) {
+        Box(
+            modifier = Modifier.size(size),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                var borderColor by remember { mutableStateOf(Color.Red) }
+                Card(
+                    shape = RoundedCornerShape(0.dp),
+                    modifier = Modifier
+                        .size(size = size)
+                        .drawWithCache {
+                            Log.d("compose_study", "此处不会发生 Recompose")
+                            val path = Path().apply {
+                                moveTo(0f, 0f)
+                                relativeLineTo(50.dp.toPx(), 0f)
+                                relativeLineTo(0f, 50.dp.toPx())
+                                relativeLineTo(-50.dp.toPx(), 0f)
+                                relativeLineTo(0f, -50.dp.toPx())
+                            }
+                            onDrawWithContent {
+                                Log.d("compose_study", "此处会发生 Recompose")
+                                drawContent()
+                                drawPath(
+                                    path = path,
+                                    color = borderColor,
+                                    style = Stroke(
+                                        width = 10f,
+                                    )
+                                )
+                            }
+                        }
+                ) {
+                    Image(painter = painterResource(id = R.drawable.logo), contentDescription = "Diana", modifier = Modifier.clickable {
+                        borderColor = when(borderColor) {
+                            Color.Red -> {
+                                Color.Yellow
+                            }
+                            else -> {
+                                Color.Red
+                            }
+                        }
+                    })
                 }
             }
         }
     }
+
+    @Composable
+    fun InkColorCanvas() {
+        val option = BitmapFactory.Options()
+        val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
+        val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
+        val animal = remember { Animatable(0.0f) }
+        var xbLength = 0.0f
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize().pointerInput(Unit) {
+                    coroutineScope {
+                        while (true) {
+                            val offset = awaitPointerEventScope {
+                                awaitFirstDown().position
+                            }
+                            launch {
+                                animal.animateTo(
+                                    xbLength,
+                                    animationSpec = spring(stiffness = Spring.DampingRatioLowBouncy)
+                                )
+                            }
+
+                        }
+                    }
+                }
+        ) {
+            drawIntoCanvas { canva ->
+                val multiColorBitmpa = Bitmap.createScaledBitmap(
+                    imageBitmap,
+                    size.width.toInt(),
+                    size.height.toInt(), false
+                )
+                val blackColorBitmpa = Bitmap.createScaledBitmap(
+                    imageBitmapDefault,
+                    size.width.toInt(),
+                    size.height.toInt(),
+                    false
+                )
+                val paint = Paint().asFrameworkPaint()
+                canva.nativeCanvas.drawBitmap(multiColorBitmpa, 0f, 0f, paint) //绘制图片
+                //保存图层
+                val layerId: Int = canva.nativeCanvas.saveLayer(
+                    0f,
+                    0f,
+                    size.width,
+                    size.height,
+                    paint,
+                )
+                canva.nativeCanvas.drawBitmap(blackColorBitmpa, 0f, 0f, paint)
+                //PorterDuffXfermode 设置画笔的图形混合模式
+                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                //画圆
+                canva.nativeCanvas.drawCircle(
+                    size.width / 2,
+                    size.height / 2,
+                    animal.value,
+                    paint
+                )
+                //画布斜边
+                xbLength = kotlin.math.sqrt(size.width.toDouble().pow(2.0) + size.height.toDouble().pow(2)).toFloat()
+                paint.xfermode = null
+                canva.nativeCanvas.restoreToCount(layerId)
+            }
+        }
+    }
+
+    @Composable
+    fun InkColorCanvasRule() {
+        val option = BitmapFactory.Options()
+        val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
+        val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
+        val screenOffset = remember { mutableStateOf(Offset(0f, 0f)) }
+        val animalState = remember { mutableStateOf(false) }
+        val animal: Float by animateFloatAsState(
+            if (animalState.value) {
+                1f
+            } else {
+                0f
+            }, animationSpec = TweenSpec(durationMillis = 4000)
+        )
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    coroutineScope {
+                        while (true) {
+                            val position = awaitPointerEventScope {
+                                awaitFirstDown().position
+                            }
+                            launch {
+                                screenOffset.value = Offset(position.x, position.y)
+                                animalState.value = !animalState.value
+                            }
+
+                        }
+                    }
+                }
+        ) {
+            drawIntoCanvas { canvas ->
+                val multiColorBitmap = Bitmap.createScaledBitmap(
+                    imageBitmap,
+                    size.width.toInt(),
+                    size.height.toInt(),
+                    false
+                )
+                val blackColorBitmap = Bitmap.createScaledBitmap(
+                    imageBitmapDefault,
+                    size.width.toInt(),
+                    size.height.toInt(),
+                    false
+                )
+                val paint = Paint().asFrameworkPaint()
+                canvas.nativeCanvas.drawBitmap(multiColorBitmap, 0f, 0f, paint) //绘制图片
+                //保存图层
+                val layerId: Int = canvas.nativeCanvas.saveLayer(
+                    0f,
+                    0f,
+                    size.width,
+                    size.height,
+                    paint,
+                )
+                //当前图层也是顶层图层绘制黑白Btmap
+                canvas.nativeCanvas.drawBitmap(blackColorBitmap, 0f, 0f, paint)
+                //PorterDuffXfermode 设置画笔的图形混合模式
+                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                val xbLength = kotlin.math.sqrt(size.width.toDouble().pow(2.0) + size.height.toDouble().pow(2)).toFloat()*animal
+                //画圆
+                canvas.nativeCanvas.drawCircle(
+                    screenOffset.value.x,
+                    screenOffset.value.y,
+                    xbLength,
+                    paint
+                )
+                //画布斜边
+                paint.xfermode = null
+                canvas.nativeCanvas.restoreToCount(layerId)
+            }
+        }
+    }
+
+    @Composable
+    fun InkColorCanvasIrregular() {
+        val option = BitmapFactory.Options()
+        val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
+        val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
+        val scrrenOffset = remember { mutableStateOf(Offset(0f, 0f)) }
+        val animalState = remember { mutableStateOf(false) }
+        val animal: Float by animateFloatAsState(
+            if (animalState.value) {
+                1f
+            } else {
+                0f
+            }, animationSpec = TweenSpec(durationMillis = 6000)
+        )
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    coroutineScope {
+                        while (true) {
+                            val position = awaitPointerEventScope {
+                                awaitFirstDown().position
+                            }
+                            launch {
+                                scrrenOffset.value = Offset(position.x, position.y)
+                                animalState.value = !animalState.value
+                            }
+
+                        }
+                    }
+                }
+        ) {
+            drawIntoCanvas { canva ->
+                val multiColorBitmpa = Bitmap.createScaledBitmap(
+                    imageBitmap,
+                    size.width.toInt(),
+                    size.height.toInt(), false
+                )
+                val blackColorBitmpa = Bitmap.createScaledBitmap(
+                    imageBitmapDefault,
+                    size.width.toInt(),
+                    size.height.toInt(),
+                    false
+                )
+                val paint = Paint().asFrameworkPaint()
+                canva.nativeCanvas.drawBitmap(multiColorBitmpa, 0f, 0f, paint) //绘制图片
+                //保存图层
+                val layerId: Int = canva.nativeCanvas.saveLayer(
+                    0f,
+                    0f,
+                    size.width,
+                    size.height,
+                    paint,
+                )
+                canva.nativeCanvas.drawBitmap(blackColorBitmpa, 0f, 0f, paint)
+                //PorterDuffXfermode 设置画笔的图形混合模式
+                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                val xbLength = kotlin.math.sqrt(size.width.toDouble().pow(2.0) + size.height.toDouble().pow(2)).toFloat() * animal
+                //画圆
+//            canva.nativeCanvas.drawCircle(
+//                scrrenOffset.value.x,
+//                scrrenOffset.value.y,
+//                xbLength,
+//                paint
+//            )
+                val path = Path().asAndroidPath()
+                path.moveTo(scrrenOffset.value.x, scrrenOffset.value.y)
+                //随便绘制了哥区域。当然了为了好看曲线可以更美。
+                if (xbLength>0) {
+                    path.addOval(
+                        RectF(
+                            scrrenOffset.value.x - xbLength,
+                            scrrenOffset.value.y - xbLength,
+                            scrrenOffset.value.x + 100f + xbLength,
+                            scrrenOffset.value.y + 130f + xbLength
+                        ), android.graphics.Path.Direction.CCW
+                    )
+                    path.addCircle(
+                        scrrenOffset.value.x, scrrenOffset.value.y, 100f + xbLength,
+                        android.graphics.Path.Direction.CCW
+                    )
+                    path.addCircle(
+                        scrrenOffset.value.x-100, scrrenOffset.value.y-100, 50f + xbLength,
+                        android.graphics.Path.Direction.CCW
+                    )
+                }
+                path.close()
+                canva.nativeCanvas.drawPath(path, paint)
+                //画布斜边
+                paint.xfermode = null
+                canva.nativeCanvas.restoreToCount(layerId)
+            }
+        }
+    }
+
+//    private lateinit var getCanvas: Canvas
+//    @Composable
+//    fun CanvasCircle() {
+//        //距离左边屏幕距离
+//        val marginToLeft = 1000f
+//        //距离屏幕下边距离
+//        val marginToBottom = 2000f
+//        Canvas(modifier = Modifier
+//            .fillMaxWidth()
+//            .fillMaxHeight()) {
+//            drawIntoCanvas { canvas ->
+//                val paint = Paint()
+//                paint.style = PaintingStyle.Fill
+//                paint.color = Color.Green
+//                canvas.translate(0f, size.height)
+//                canvas.scale(0.5f, 0.5f)
+//                canvas.translate(marginToLeft, marginToBottom)
+//                canvas.drawCircle(Offset(100f, 100f), 100f, paint)
+//                getCanvas = canvas
+//            }
+//            this.drawXLine(2000.0f, 0.0f, 2000.0f, getCanvas)
+//        }
+//    }
+//
+//    private fun DrawScope.drawXLine(
+//        x_scaleWidth: Float,
+//        marginToLeft: Float,
+//        grid_width: Float,
+//        canvas: Canvas
+//    ) {
+//        var xScaleWidth1 = x_scaleWidth
+//        var gridWidth1 = grid_width
+//        val linePaint = Paint()
+//        linePaint.strokeWidth = 2f
+//        linePaint.style = PaintingStyle.Stroke
+//        linePaint.color = Color(188, 188, 188, 100)
+//        //x轴距离右边也留80距离
+//        xScaleWidth1 = (size.width - marginToLeft - 80f)
+//        gridWidth1 = xScaleWidth1 / 6
+//        val onePath = Path()
+//        onePath.lineTo(xScaleWidth1, 0f)
+//        canvas.drawPath(onePath, linePaint)
+//        canvas.save()
+//        //通过平移画布绘制剩余的平行x轴线
+//        (0 until 3).forEach { index ->
+//            canvas.translate(0f, gridWidth1 - 40f)
+//            canvas.drawPath(onePath, linePaint)
+//        }
+//        canvas.restore()
+//    }
 
     @Composable
     fun LazyListState.isScrollingUp(): Boolean {
@@ -5076,6 +5890,7 @@ class Delegate {
 class CountNumParentData(var countNum: Int) : ParentDataModifier {
     override fun Density.modifyParentData(parentData: Any?) = this@CountNumParentData
 }
+
 
 fun Modifier.count(context: Context, num: Int) = this
     .drawWithContent {

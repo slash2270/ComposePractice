@@ -85,5 +85,7 @@ dependencies {
     // 對遠程二進製文件的依賴
 //    implementation("com.example.android:app-magic:12.3")
     // Paging
-    implementation("androidx.paging:paging-compose:1.0.0-alpha18")
+    implementation("androidx.paging:paging-compose:1.0.0-alpha14")
+    // Pager
+    implementation("com.google.accompanist:accompanist-pager:0.24.12-rc")
 }
