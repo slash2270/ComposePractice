@@ -4,6 +4,7 @@ package com.example.composepractice.view
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.*
+import android.graphics.BitmapFactory.Options
 import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
@@ -63,6 +64,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -76,6 +79,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -89,28 +95,44 @@ import androidx.navigation.navArgument
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import com.example.composepractice.Constants.Companion.CONTENT_DESCRIPTION
+import com.example.composepractice.Constants.Companion.KEY_BEAN_EXAMPLE
+import com.example.composepractice.Constants.Companion.KEY_BOOLEAN_EXAMPLE
+import com.example.composepractice.Constants.Companion.KEY_STRING_EXAMPLE
+import com.example.composepractice.Constants.Companion.KEY_STRING_EXAMPLE_2
 import com.example.composepractice.Constants.Companion.ROUTE_FIVE
 import com.example.composepractice.Constants.Companion.ROUTE_FOUR
 import com.example.composepractice.Constants.Companion.ROUTE_MAIN
 import com.example.composepractice.Constants.Companion.ROUTE_ONE
+import com.example.composepractice.Constants.Companion.ROUTE_SIX
 import com.example.composepractice.Constants.Companion.ROUTE_THREE
 import com.example.composepractice.Constants.Companion.ROUTE_TWO
 import com.example.composepractice.R
 import com.example.composepractice.components.ScrollableAppBar
 import com.example.composepractice.data.*
+import com.example.composepractice.model.ThemeType
 import com.example.composepractice.ui.theme.BloomTheme
 import com.example.composepractice.ui.theme.ComposePracticeTheme
 import com.example.composepractice.ui.theme.ComposeTutorialTheme
 import com.example.composepractice.ui.theme.Shapes
+import com.example.composepractice.viewmodel.AnimationViewModel
+import com.funny.data_saver.core.*
+import com.funny.data_saver.core.DataSaverConverter.registerTypeConverters
+import com.funny.data_saver_mmkv.DefaultDataSaverMMKV
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
 import com.skydoves.landscapist.coil.CoilImage
+import com.tencent.mmkv.MMKV
+import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -122,11 +144,23 @@ interface SampleInterface {
     fun log(message: String)
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 class MainActivity : ComponentActivity(), SampleInterface {
 
     private val localInterface = staticCompositionLocalOf<SampleInterface> { error("Not provided") }
+    private val Context.dataStore : DataStore<Preferences> by preferencesDataStore("dataStore")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        MMKV.initialize(applicationContext)
+        val dataSaverMMKV = DefaultDataSaverMMKV
+        registerTypeConverters<DataSaverBean?>(
+            save = { bean -> Json.encodeToString(bean) },
+            restore = { str ->
+                Log.d("ExampleActivity", "restore ExampleBean?: $str")
+                Json.decodeFromString(str)
+            }
+        )
+        registerTypeConverters(save = ThemeType.Saver, restore = ThemeType.Restorer)
         setContent {
             ComposableInterface(sampleInterface = this)
             ComposePracticeTheme {
@@ -135,7 +169,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    PageJumpSamples(Message("Android", "Jetpack Compose"))
+                    CompositionLocalProvider(LocalDataSaver provides dataSaverMMKV){
+                        PageJumpSamples(Message("Android", "Jetpack Compose"))
+                    }
                 }
             }
         }
@@ -225,7 +261,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 }
                                 ComposeTutorialTheme(darkTheme = true) {
                                     // 在我們的消息周圍添加填充
-                                    Row(modifier = Modifier.padding(all = 8.dp)) {
+                                    Row(modifier = Modifier
+                                        .padding(all = 8.dp)
+                                        .clickable {
+                                            coroutineScope.launch(Dispatchers.Main) {
+                                                navController.navigate(route = ROUTE_SIX) {
+                                                    launchSingleTop = true
+                                                }
+                                            }
+                                        }) {
                                         Image(
                                             painter = painterResource(R.drawable.ic_launcher_background),
                                             contentDescription = getString(CONTENT_DESCRIPTION),
@@ -1809,12 +1853,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                 }
                 composable(route = ROUTE_FOUR) {
-                    ActivityFour(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography) {
+                    ActivityFour(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
                         navController.popBackStack()
                     }
                 }
                 composable(route = ROUTE_FIVE) {
                     ActivityFive(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
+                        navController.popBackStack()
+                    }
+                }
+                composable(route = ROUTE_SIX) {
+                    ActivitySix(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
                         navController.popBackStack()
                     }
                 }
@@ -4851,9 +4900,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
         }
     }
 
-
     @Composable
-    fun ActivityFour(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
+    fun ActivityFour(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, style: TextStyle, navigation: () -> Unit) {
+        var selectedItem by remember{ mutableStateOf(0) }
         val toolbarHeight = 200.dp // 定义 ToolBar 的高度
         val maxUpPx = with(LocalDensity.current) { toolbarHeight.roundToPx().toFloat() - 56.dp.roundToPx().toFloat() } // ToolBar 最大向上位移量 56.dp 参考自 androidx.compose.material AppBar.kt 里面定义的 private val AppBarHeight = 56.dp
         val minUpPx = 0f // ToolBar 最小向上位移量
@@ -4869,9 +4918,6 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
             }
         }
-        var selectedItem by remember { mutableStateOf(0) }
-        val listTitle = listOf("主頁","資訊","喜歡", "設置")
-        val listIcon = listOf(Icons.Filled.Home, Icons.Filled.Info, Icons.Filled.Favorite, Icons.Filled.Settings)
         val listState = rememberLazyListState()
         // 添加一个用于是否显示按钮的代码 如果第一个可见的项目已经被移动过去，就显示这个按钮。
         val showButton by remember {
@@ -4879,6 +4925,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 listState.firstVisibleItemIndex > 0
             }
         }
+        val listTitle = listOf("地方","郵件","電話", "人")
+        val listIcon = listOf(Icons.Filled.Place, Icons.Filled.Email, Icons.Filled.Phone, Icons.Filled.Person)
         AnimatedVisibility(visible = showButton) {
             toolbarOffsetHeightPx = InitFab(coroutineScope = coroutineScope, listState = listState, toolbarOffsetHeightPx = toolbarOffsetHeightPx)
         }
@@ -4910,7 +4958,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                         .padding(8.dp, 12.dp)
                                         .clickable {
 
-                                        }
+                                        },
+                                        color = colors.onError
                                     )
                                     Divider(color = colors.onBackground)
                                 }
@@ -4928,9 +4977,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                 }
             },
-            floatingActionButton = {
-                toolbarOffsetHeightPx = InitFab(coroutineScope = coroutineScope, listState = listState, toolbarOffsetHeightPx = toolbarOffsetHeightPx)
-            },
+            floatingActionButton = { toolbarOffsetHeightPx = InitFab(coroutineScope = coroutineScope, listState = listState, toolbarOffsetHeightPx = toolbarOffsetHeightPx) },
             isFloatingActionButtonDocked = true,
             floatingActionButtonPosition = FabPosition.Center,
             bottomBar = {
@@ -5006,305 +5053,6 @@ class MainActivity : ComponentActivity(), SampleInterface {
         Text(text = text)
     }
 
-//    @InternalComposeApi
-//    @Composable
-//    fun BottomNavigationTwo(homeViewModel:HomeViewModel){
-//        val applyContext = currentComposer.applyCoroutineContext
-//        val clickTrue = remember { mutableStateOf(false) }
-//        val mCurAnimValueColor = remember { Animatable(1f) }
-//        val animalBooleanState: Float by animateFloatAsState(
-//            if (homeViewModel.animalBoolean.value) {
-//                0f
-//            } else {
-//                1f
-//            }, animationSpec = TweenSpec(durationMillis = 600),
-//            finishedListener = {
-//                if (it>=0.9f&&clickTrue.value){
-//                    homeViewModel.animalBoolean.value = !homeViewModel.animalBoolean.value
-//                }
-//            }
-//        )
-//        val stiffness = 100f
-//        val animalScaleCanvasWidthValue: Float by animateFloatAsState(
-//            if (!clickTrue.value) {
-//                0f
-//            } else {
-//                30f
-//            },
-//            animationSpec = SpringSpec(stiffness = stiffness),
-//        )
-//        val animalScaleCanvasHeightValue: Float by animateFloatAsState(
-//            if (!clickTrue.value) {
-//                0f
-//            } else {
-//                30f
-//            },
-//            animationSpec = SpringSpec(stiffness = stiffness),
-//        )
-//        val mCurAnimalHeight: Float by animateFloatAsState(
-//            if (!clickTrue.value) {
-//                -30f
-//            } else {
-//                30f
-//            },
-//            animationSpec = SpringSpec(stiffness = stiffness),
-//        )
-//
-//        val mCurAnimValueY: Float by animateFloatAsState(
-//            if (!clickTrue.value) {
-//                0f
-//            } else {
-//                1f
-//            }, animationSpec = SpringSpec(stiffness = stiffness),
-//            finishedListener = {
-//                if (it >= 0.9f && clickTrue.value) {
-//                    CoroutineScope(applyContext).launch {
-//                        mCurAnimValueColor.animateTo(
-//                            0f,
-//                            animationSpec = SpringSpec(stiffness = stiffness)
-//                        )
-//                    }
-//                }
-//                if (it <= 0.01f && !clickTrue.value) {
-//                    CoroutineScope(applyContext).launch {
-//                        mCurAnimValueColor.animateTo(
-//                            1f,
-//                            animationSpec = SpringSpec(stiffness = stiffness)
-//                        )
-//                    }
-//                }
-//                //动画结束->回归原来位置
-//                if (it > 0.9f && clickTrue.value) {
-//                    clickTrue.value = !clickTrue.value
-//                }
-//            }
-//            //TweenSpec(durationMillis = 1600)
-//            // DurationBasedAnimationSpec, FloatSpringSpec, FloatTweenSpec, KeyframesSpec, RepeatableSpec, SnapSpec, SpringSpec, TweenSpec
-//        )
-//
-//        //半径的决定动画
-//        val mCurAnimValue: Float by animateFloatAsState(
-//            if (clickTrue.value) {
-//                0f
-//            } else {
-//                1f
-//            }, animationSpec = SpringSpec(dampingRatio = 1f, stiffness = 30f)
-//        )
-//        Box(contentAlignment = Alignment.BottomCenter,
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .fillMaxHeight()
-//        ) {
-//
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .height(100.dp)
-//                    .clickable() {}
-//            ) {
-//                androidx.compose.foundation.Canvas(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .fillMaxHeight()
-//                ) {
-//                    drawIntoCanvas { canvas ->
-//                        //绘制底部曲线到底部
-//                        canvas.translate(0f, size.height)
-//                        canvas.scale(1f, -1f)
-//                        val paint = androidx.compose.ui.graphics.Paint()
-//                        paint.strokeWidth = 2f
-//                        paint.style = PaintingStyle.Fill
-//                        paint.color = Color(245, 215, 254, 255)
-//
-//                        val height = 276f
-//                        val cicleHeight = height / 3
-//                        val ScaleHeight = animalScaleCanvasHeightValue
-//                        val ScaleWidth = animalScaleCanvasWidthValue
-//                        //控制脖子左边,一直在变化
-//                        val path = Path()
-//                        path.moveTo(0f + ScaleWidth, 0f)
-//                        path.lineTo(0f + ScaleWidth, height - cicleHeight + ScaleHeight)
-//                        path.quadraticBezierTo(
-//                            0f + ScaleWidth,
-//                            height + ScaleHeight,
-//                            cicleHeight,
-//                            height + ScaleHeight
-//                        )
-//
-//
-//                        //第一个左弧度
-//                        path.lineTo(size.width - cicleHeight - ScaleWidth, height + ScaleHeight)
-//                        path.quadraticBezierTo(
-//                            size.width - ScaleWidth,
-//                            height + ScaleHeight,
-//                            size.width - ScaleWidth,
-//                            height - cicleHeight + ScaleHeight
-//                        )
-//                        path.lineTo(size.width - ScaleWidth, 0f)
-//                        path.close()
-//                        canvas.drawPath(path, paint)
-////--------------------------------------------------------------------------
-//                        canvas.save()
-//                        //中间凸起部分
-//                        val centerHdX =
-//                            size.width / 3 / 2 + size.width / 3 * homeViewModel.position.value!!
-//                        //这里坐标系位置圆点就为上边线中点
-//                        canvas.translate(centerHdX, height)
-//                        val R = 30f
-//                        //0-50是变大部分
-//                        val RH = mCurAnimalHeight
-//                        //50到-50是变为平
-//                        val p0 = Offset(-R, 0f + RH + animalScaleCanvasHeightValue)
-//                        val p1 = Offset(-R, R + RH + animalScaleCanvasHeightValue)
-//                        val p3 = Offset(0f, 2 * R - 30f + RH + animalScaleCanvasHeightValue)
-//                        val p5 = Offset(R, R + RH + animalScaleCanvasHeightValue)
-//                        val p6 = Offset(R, 0f + RH + animalScaleCanvasHeightValue)
-//                        val p7 = Offset(100f, -10f + animalScaleCanvasHeightValue)
-//
-//                        val pathCub = Path()
-//                        pathCub.moveTo(-100f, 0f + animalScaleCanvasHeightValue)
-//                        pathCub.cubicTo(p0.x, p0.y, p1.x, p1.y, p3.x, p3.y)
-//                        pathCub.cubicTo(p5.x, p5.y, p6.x, p6.y, p7.x, p7.y)
-//
-//                        canvas.drawPath(pathCub, paint)
-//
-//
-//                        //中间凸起部分落下
-//                        canvas.restore()
-//
-////--------------------------------------------------------------------------
-//
-//                        //绘制弹性圆球
-//                        //假设点击的是index=0一共三个底部按钮
-//                        canvas.save()
-//                        //1,2,3
-//                        //将坐标系移动到点击部位()这样写起来比较爽好理解。将点击部位作为我们的坐标系园点
-//                        val centerX =
-//                            size.width / 3 / 2 + size.width / 3 * homeViewModel.position.value!!
-//                        Log.e("圆点", "LoginPage: $centerX")
-//                        canvas.translate(centerX, height * 2 / 3.2f)
-//                        //canvas.drawCircle(Offset(0f, 0f), 100f, paint)
-//                        //这里我们清楚坐标圆点之后我们进行绘制我们的圆
-//                        val r = 100f - 50 * (1 - mCurAnimValue)
-//                        //圆的坐标和中心点的坐标计算
-//                        //1.首先 原点为(0f,0f)且半径r=100f--->那么p6(0f,r),p5=(r/2,r),p4(r,r/2),p3(r,0f)
-//                        //2.第二象限里面 p2(r,-r/2),p1(r/2,-r),p0(0f,r)
-//                        //3.第三象限里面 p11(-r/2,-r),p10(-r,-r/2),p9(-r,0f)
-//                        //4.第四象限里面 p8(-r,r/2),p7(r/2,r),p6(0f,r)
-//                        Log.e("mCurAnimValueY", "LoginPage=: $mCurAnimValueY")
-//                        val moveTopHeight = mCurAnimValueY * 250f
-//                        val P0 = Offset(0f, -r + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P1 = Offset(r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P2 = Offset(r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P3 = Offset(r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P4 = Offset(r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P5 = Offset(r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P6 = Offset(0f, r + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P7 = Offset(-r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P8 = Offset(-r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P9 = Offset(-r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P10 = Offset(-r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
-//                        val P11 = Offset(-r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
-//
-//                        val heightController = 180f
-//                        val pathReult = Path()
-//                        pathReult.moveTo(P0.x, P0.y - heightController * mCurAnimValue)
-//                        //p1->p2->p3
-//                        pathReult.cubicTo(
-//                            P1.x,
-//                            P1.y - 30 * mCurAnimValue,
-//                            P2.x,
-//                            P2.y - 30 * mCurAnimValue,
-//                            P3.x,
-//                            P3.y
-//                        )
-//                        //p4->p5->p6
-//                        pathReult.cubicTo(P4.x, P4.y, P5.x, P5.y, P6.x, P6.y)
-//                        //p7->p8->p9
-//                        pathReult.cubicTo(P7.x, P7.y, P8.x, P8.y, P9.x, P9.y)
-//                        //p10->p11->p0
-//                        pathReult.cubicTo(
-//                            P10.x,
-//                            P10.y - 30 * mCurAnimValue,
-//                            P11.x,
-//                            P11.y - 30 * mCurAnimValue,
-//                            P0.x,
-//                            P0.y - heightController * mCurAnimValue
-//                        )
-//                        pathReult.close()
-//                        //
-//                        paint.color = Color(245, 215, 254, mCurAnimValueColor.value.toInt() * 255)
-//                        //canvas.drawPath(pathReult, paint)
-//                    }
-//
-//                }
-//            }
-//
-//            Row(
-//                modifier = Modifier.fillMaxWidth().height(200.dp), horizontalArrangement = Arrangement.SpaceAround,verticalAlignment = Alignment.Bottom
-//            ) {
-//                Image(
-//                    bitmap = getBitmap(resource = R.drawable.home),
-//                    contentDescription = "1",
-//                    modifier = Modifier
-//                        .modifiers(homeViewModel.position.value, 0, animalBooleanState)
-//                        .clickable {
-//                            homeViewModel.positionChanged(0)
-//                            clickTrue.value = !clickTrue.value
-//                            homeViewModel.animalBoolean.value = !homeViewModel.animalBoolean.value
-//                        }
-//                )
-//
-//                Image(
-//                    bitmap = getBitmap(resource = R.drawable.center),
-//                    contentDescription = "1",
-//                    modifier = Modifier
-//                        .modifiers(homeViewModel.position.value, 1, animalBooleanState)
-//                        .clickable {
-//                            homeViewModel.positionChanged(1)
-//                            clickTrue.value = !clickTrue.value
-//                            homeViewModel.animalBoolean.value = !homeViewModel.animalBoolean.value
-//
-//                        }
-//                )
-//                Image(
-//                    bitmap = getBitmap(resource = R.drawable.min),
-//                    contentDescription = "1",
-//                    modifier = Modifier
-//                        .modifiers(homeViewModel.position.value, 2, animalBooleanState)
-//                        .clickable {
-//                            homeViewModel.positionChanged(2)
-//                            clickTrue.value = !clickTrue.value
-//                            homeViewModel.animalBoolean.value = !homeViewModel.animalBoolean.value
-//                        }
-//                )
-//
-//            }
-//
-//        }
-//
-//    }
-//
-//    fun Modifier.modifiers(
-//        animalCenterIndex: Int?,
-//        i: Int,
-//        animalBooleanState: Float
-//    ): Modifier {
-//        Log.e("currentValue=", "modifiers: "+animalCenterIndex.toString()+"=="+i )
-//        return if (animalCenterIndex == i) {
-//            Modifier
-//                .padding(bottom = 35.dp + (animalBooleanState * 100).dp)
-//                .width(25.dp)
-//                .height(25.dp)
-//        } else {
-//            return  Modifier
-//                .padding(bottom = 35.dp - (animalBooleanState * 10).dp)
-//                .width(25.dp)
-//                .height(25.dp)
-//        }
-//    }
-
-    @OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
     @Composable
     fun ActivityFive(context: Context, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
         Scaffold(
@@ -5362,13 +5110,21 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         )
                     })
             },
+            bottomBar = {
+                BottomNavigationCustom(colors = colors)
+            },
         ) {
+            val option = Options()
             Row {
-                Box(modifier = Modifier.width(180.dp).height(350.dp)) {
-                    InkColorCanvasRule()
+                Box(modifier = Modifier
+                    .width(180.dp)
+                    .height(350.dp)) {
+                    InkColorCanvasRule(option)
                 }
-                Box(modifier = Modifier.width(180.dp).height(350.dp)) {
-                    InkColorCanvasIrregular()
+                Box(modifier = Modifier
+                    .width(180.dp)
+                    .height(350.dp)) {
+                    InkColorCanvasIrregular(option)
                 }
             }
             Column(modifier = Modifier
@@ -5385,22 +5141,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     DrawBorder(size)
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-//                InkColorCanvas()
-//                Row(modifier = Modifier.height(160.dp)) {
-//                    Box(modifier = Modifier.weight(1.0f)) {
-//                        InkColorCanvas()
-//                    }
-//                    InkColorCanvas()
-//                    Spacer(modifier = Modifier.width(8.dp))
-//                    Box(modifier = Modifier.weight(1.0f)) {
-//                        InkColorCanvasRule()
-//                    }
-//                    InkColorCanvasRule()
-//                    Spacer(modifier = Modifier.width(8.dp))
-//                    Box(modifier = Modifier.weight(1.0f)) {
-//                        InkColorCanvasIrregular()
-//                    }
-//                }
+                Spacer(modifier = Modifier.height(4.dp))
             }
         }
     }
@@ -5524,15 +5265,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun InkColorCanvas() {
-        val option = BitmapFactory.Options()
+    fun InkColorCanvas(option: Options) {
         val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
         val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
         val animal = remember { Animatable(0.0f) }
         var xbLength = 0.0f
         Canvas(
             modifier = Modifier
-                .fillMaxSize().pointerInput(Unit) {
+                .fillMaxSize()
+                .pointerInput(Unit) {
                     coroutineScope {
                         while (true) {
                             val offset = awaitPointerEventScope {
@@ -5590,8 +5331,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun InkColorCanvasRule() {
-        val option = BitmapFactory.Options()
+    fun InkColorCanvasRule(option: Options) {
         val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
         val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
         val screenOffset = remember { mutableStateOf(Offset(0f, 0f)) }
@@ -5664,8 +5404,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun InkColorCanvasIrregular() {
-        val option = BitmapFactory.Options()
+    fun InkColorCanvasIrregular(option: Options) {
         val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
         val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
         val scrrenOffset = remember { mutableStateOf(Offset(0f, 0f)) }
@@ -5758,6 +5497,259 @@ class MainActivity : ComponentActivity(), SampleInterface {
         }
     }
 
+    @OptIn(InternalComposeApi::class)
+    @Composable
+    fun BottomNavigationCustom(colors: Colors) {
+        val viewModel = AnimationViewModel()
+        val listStateColor by remember { mutableStateOf(arrayListOf(colors.error, colors.onError, colors.onError, colors.onError)) }
+        val listTitle = listOf("主頁","資訊","喜歡", "設置")
+        val listIcon = listOf(Icons.Filled.Home, Icons.Filled.Info, Icons.Filled.Favorite, Icons.Filled.Settings)
+        val applyContext = currentComposer.applyCoroutineContext
+        val clickTrue = remember { mutableStateOf(false) }
+        val mCurAnimValueColor = remember { Animatable(1f) }
+        val animalBooleanState: Float by animateFloatAsState(
+            if (viewModel.animalBoolean.value) {
+                0f
+            } else {
+                1f
+            }, animationSpec = TweenSpec(durationMillis = 600),
+            finishedListener = {
+                if (it >= 0.9f && clickTrue.value){
+                    viewModel.animalBoolean.value = !viewModel.animalBoolean.value
+                }
+            }
+        )
+        val stiffness = 100f
+        val animalScaleCanvasWidthValue: Float by animateFloatAsState(
+            if (!clickTrue.value) {
+                0f
+            } else {
+                30f
+            },
+            animationSpec = SpringSpec(stiffness = stiffness),
+        )
+        val animalScaleCanvasHeightValue: Float by animateFloatAsState(
+            if (!clickTrue.value) {
+                0f
+            } else {
+                30f
+            },
+            animationSpec = SpringSpec(stiffness = stiffness),
+        )
+        val mCurAnimalHeight: Float by animateFloatAsState(
+            if (!clickTrue.value) {
+                -30f
+            } else {
+                30f
+            },
+            animationSpec = SpringSpec(stiffness = stiffness),
+        )
+        val mCurAnimValueY: Float by animateFloatAsState(
+            if (!clickTrue.value) {
+                0f
+            } else {
+                1f
+            }, animationSpec = SpringSpec(stiffness = stiffness),
+            finishedListener = {
+                if (it >= 0.9f && clickTrue.value) {
+                    CoroutineScope(applyContext).launch {
+                        mCurAnimValueColor.animateTo(
+                            0f,
+                            animationSpec = SpringSpec(stiffness = stiffness)
+                        )
+                    }
+                }
+                if (it <= 0.01f && !clickTrue.value) {
+                    CoroutineScope(applyContext).launch {
+                        mCurAnimValueColor.animateTo(
+                            1f,
+                            animationSpec = SpringSpec(stiffness = stiffness)
+                        )
+                    }
+                }
+                //动画结束->回归原来位置
+                if (it > 0.9f && clickTrue.value) {
+                    clickTrue.value = !clickTrue.value
+                }
+            }
+            //TweenSpec(durationMillis = 1600)
+            // DurationBasedAnimationSpec, FloatSpringSpec, FloatTweenSpec, KeyframesSpec, RepeatableSpec, SnapSpec, SpringSpec, TweenSpec
+        )
+        //半径的决定动画
+        val mCurAnimValue: Float by animateFloatAsState(
+            if (clickTrue.value) {
+                0f
+            } else {
+                1f
+            }, animationSpec = SpringSpec(dampingRatio = 1f, stiffness = 30f)
+        )
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)) {
+                Canvas(modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()) {
+                    drawIntoCanvas { canvas ->
+                        //绘制底部曲线到底部
+                        canvas.translate(0f, size.height)
+                        canvas.scale(1f, -1f)
+                        val paint = Paint()
+                        paint.strokeWidth = 2f
+                        paint.style = PaintingStyle.Fill
+                        paint.color = Color(245, 215, 254, 255)
+
+                        val height = 276f
+                        val cicleHeight = height / 3
+                        val ScaleHeight = animalScaleCanvasHeightValue
+                        val ScaleWidth = animalScaleCanvasWidthValue
+                        //控制脖子左边,一直在变化
+                        val path = Path()
+                        path.moveTo(0f + ScaleWidth, 0f)
+                        path.lineTo(0f + ScaleWidth, height - cicleHeight + ScaleHeight)
+                        path.quadraticBezierTo(
+                            0f + ScaleWidth,
+                            height + ScaleHeight,
+                            cicleHeight,
+                            height + ScaleHeight
+                        )
+
+                        //第一个左弧度
+                        path.lineTo(size.width - cicleHeight - ScaleWidth, height + ScaleHeight)
+                        path.quadraticBezierTo(
+                            size.width - ScaleWidth,
+                            height + ScaleHeight,
+                            size.width - ScaleWidth,
+                            height - cicleHeight + ScaleHeight
+                        )
+                        path.lineTo(size.width - ScaleWidth, 0f)
+                        path.close()
+                        canvas.drawPath(path, paint)
+//--------------------------------------------------------------------------
+                        canvas.save()
+                        //中间凸起部分
+                        val centerHdX = size.width / 3 / 2 + size.width / 3 * viewModel.position.value!!
+                        //这里坐标系位置圆点就为上边线中点
+                        canvas.translate(centerHdX, height)
+                        val R = 30f
+                        //0-50是变大部分
+                        val RH = mCurAnimalHeight
+                        //50到-50是变为平
+                        val p0 = Offset(-R, 0f + RH + animalScaleCanvasHeightValue)
+                        val p1 = Offset(-R, R + RH + animalScaleCanvasHeightValue)
+                        val p3 = Offset(0f, 2 * R - 30f + RH + animalScaleCanvasHeightValue)
+                        val p5 = Offset(R, R + RH + animalScaleCanvasHeightValue)
+                        val p6 = Offset(R, 0f + RH + animalScaleCanvasHeightValue)
+                        val p7 = Offset(100f, -10f + animalScaleCanvasHeightValue)
+
+                        val pathCub = Path()
+                        pathCub.moveTo(-100f, 0f + animalScaleCanvasHeightValue)
+                        pathCub.cubicTo(p0.x, p0.y, p1.x, p1.y, p3.x, p3.y)
+                        pathCub.cubicTo(p5.x, p5.y, p6.x, p6.y, p7.x, p7.y)
+
+                        canvas.drawPath(pathCub, paint)
+
+                        //中间凸起部分落下
+                        canvas.restore()
+
+//--------------------------------------------------------------------------
+
+                        //绘制弹性圆球
+                        //假设点击的是index=0一共三个底部按钮
+                        canvas.save()
+                        //1,2,3
+                        //将坐标系移动到点击部位()这样写起来比较爽好理解。将点击部位作为我们的坐标系园点
+                        val centerX = size.width / 3 / 2 + size.width / 3 * viewModel.position.value!!
+                        Log.e("圆点", "LoginPage: $centerX")
+                        canvas.translate(centerX, height * 2 / 3.2f)
+                        //canvas.drawCircle(Offset(0f, 0f), 100f, paint)
+                        //这里我们清楚坐标圆点之后我们进行绘制我们的圆
+                        val r = 100f - 50 * (1 - mCurAnimValue)
+                        //圆的坐标和中心点的坐标计算
+                        //1.首先 原点为(0f,0f)且半径r=100f--->那么p6(0f,r),p5=(r/2,r),p4(r,r/2),p3(r,0f)
+                        //2.第二象限里面 p2(r,-r/2),p1(r/2,-r),p0(0f,r)
+                        //3.第三象限里面 p11(-r/2,-r),p10(-r,-r/2),p9(-r,0f)
+                        //4.第四象限里面 p8(-r,r/2),p7(r/2,r),p6(0f,r)
+                        Log.e("mCurAnimValueY", "LoginPage=: $mCurAnimValueY")
+                        val moveTopHeight = mCurAnimValueY * 250f
+                        val P0 = Offset(0f, -r + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P1 = Offset(r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P2 = Offset(r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P3 = Offset(r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P4 = Offset(r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P5 = Offset(r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P6 = Offset(0f, r + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P7 = Offset(-r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P8 = Offset(-r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P9 = Offset(-r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P10 = Offset(-r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+                        val P11 = Offset(-r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
+
+                        val heightController = 180f
+                        val pathReult = Path()
+                        pathReult.moveTo(P0.x, P0.y - heightController * mCurAnimValue)
+                        //p1->p2->p3
+                        pathReult.cubicTo(
+                            P1.x,
+                            P1.y - 30 * mCurAnimValue,
+                            P2.x,
+                            P2.y - 30 * mCurAnimValue,
+                            P3.x,
+                            P3.y
+                        )
+                        //p4->p5->p6
+                        pathReult.cubicTo(P4.x, P4.y, P5.x, P5.y, P6.x, P6.y)
+                        //p7->p8->p9
+                        pathReult.cubicTo(P7.x, P7.y, P8.x, P8.y, P9.x, P9.y)
+                        //p10->p11->p0
+                        pathReult.cubicTo(
+                            P10.x,
+                            P10.y - 30 * mCurAnimValue,
+                            P11.x,
+                            P11.y - 30 * mCurAnimValue,
+                            P0.x,
+                            P0.y - heightController * mCurAnimValue
+                        )
+                        pathReult.close()
+                        paint.color = Color(245, 215, 254, mCurAnimValueColor.value.toInt() * 255)
+                        //canvas.drawPath(pathReult, paint)
+                }
+            }
+            LazyRow(modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.Bottom) {
+                items(listTitle.size) {index ->
+                    Column( // Material 庫中的圖標，有 Filled, Outlined, Rounded, Sharp, Two Tone 等
+//                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .setModifiers(viewModel.position.value, index, animalBooleanState)
+                            .clickable {
+                                viewModel.positionChanged(index)
+                                clickTrue.value = !clickTrue.value
+                                viewModel.animalBoolean.value = !viewModel.animalBoolean.value
+                                for (i in 0 until listStateColor.size) {
+                                    if (i == viewModel.position.value) {
+                                        listStateColor[i] = colors.error
+                                    } else {
+                                        listStateColor[i] = colors.onError
+                                    }
+                                }
+                            }) {
+                        Icon(
+                            listIcon[index],
+                            tint = listStateColor[index],
+                            contentDescription = getString(CONTENT_DESCRIPTION),
+                            modifier = Modifier
+                                .size(36.dp)
+                                .setModifiers(viewModel.position.value, index, animalBooleanState)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(listTitle[index], color = listStateColor[index])
+                    }
+                }
+            }
+        }
+    }
+
 //    private lateinit var getCanvas: Canvas
 //    @Composable
 //    fun CanvasCircle() {
@@ -5808,6 +5800,231 @@ class MainActivity : ComponentActivity(), SampleInterface {
 //        }
 //        canvas.restore()
 //    }
+
+
+    @Composable
+    fun ActivitySix(context: Context, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    navigation()
+                                }
+                            }) {
+                            Icon(tint = colors.onError,
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = getString(CONTENT_DESCRIPTION)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.IO) {
+
+                                }
+                            }) {
+                            Icon(tint = colors.onError,
+                                imageVector = Icons.Default.Home,
+                                contentDescription = getString(CONTENT_DESCRIPTION)
+                            )
+                        }
+                    }, title = {
+                        Text(
+                            text = "ActivitySix",
+                            color = colors.onError,
+                        )
+                    }, actions = {
+                        IconButtonDemo(
+                            content = {
+                                IconButton(onClick = {
+
+                                }) {
+                                    Icon(Icons.Filled.Info, getString(CONTENT_DESCRIPTION), tint = Color.White)
+                                }
+                            },
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.Main) {
+
+                                }
+                            })
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
+                        Text(
+                            text = "更多",
+                            color = colors.onError,
+                            modifier = Modifier.clickable {
+                                coroutineScope.launch(Dispatchers.IO) {
+
+                                }
+                            }
+                        )
+                    })
+            },
+            bottomBar = {
+
+            },
+        ) {
+            Surface(modifier = Modifier.padding(it)) {
+                DataSaverDemo()
+            }
+        }
+    }
+
+    @ExperimentalSerializationApi
+    @Composable
+    fun DataSaverDemo() { // or LocalDataSaver provides dataSaverMMKV LocalDataSaver provides dataSaverDataStorePreferences your Class instance
+        val emptyBean = DataSaverBean(233, "FunnySaltyFish")
+        // 获取 DataSaverInterface | 您可以使用此变量做手动保存
+        val dataSaverInterface = LocalDataSaver.current
+        // 你可以设置 [savePolicy]为其他类型(参见 [SavePolicy] )，以防止某些情况下过于频繁地保存
+        // 如果你设置为 SavePolicy.NEVER，则写入本地的操作需要自己做
+        // 例如: onClick = { dataSaverState.save() }
+        var stringExample by rememberDataSaverState(KEY_STRING_EXAMPLE, "FunnySaltyFish, tap to input", savePolicy = SavePolicy.IMMEDIATELY, async = true)
+        var booleanExample by rememberDataSaverState(KEY_BOOLEAN_EXAMPLE, false)
+        var beanExample by rememberDataSaverState(KEY_BEAN_EXAMPLE, default = emptyBean)
+        var themeType: ThemeType by rememberDataSaverState(key = "key_theme_type", default = ThemeType.DynamicNative)
+        var listExample by rememberDataSaverListState(key = "key_list_example", default = listOf(emptyBean.copy(label = "Name 1"), emptyBean.copy(label = "Name 2"), emptyBean.copy(label = "Name 3")))
+        // Among our basic implementations, only MMKV supports `Parcelable` by default
+        var parcelableExample by rememberDataSaverState(key = "parcelable_example", default = DataSaverParcelable("FunnySaltyFish", 20))
+        Column(Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+            Heading(text = "Auto Save Examples:")
+            Text(text = "This is an example of saving String") // 保存字符串的示例
+            OutlinedTextField(value = stringExample, onValueChange = {
+                stringExample = it
+            })
+
+            Text(text = "This is an example of saving Boolean") // 保存布尔值的示例
+            Switch(checked = booleanExample, onCheckedChange = {
+                booleanExample = it
+            })
+
+            Text(text = "This is an example of saving Parcelable") // 保存布尔值的示例
+            Text(parcelableExample.toString())
+            Button(onClick = {
+                parcelableExample = parcelableExample.copy(age = parcelableExample.age + 1)
+            }) {
+                Text(text = "Add age by 1")
+            }
+
+            Text(text = "This is an example of saving custom Data Bean") // 保存自定义类型的示例
+            Text(text = beanExample.toString())
+            Button(onClick = {
+                beanExample = beanExample.copy(id = beanExample.id + 1)
+            }) {
+                Text(text = "Add bean's id") // id自加
+            }
+
+            Text(text = "This is an example of saving custom Sealed Class") // 保存自定义类型的示例
+            Column(
+                Modifier
+                    .background(MaterialTheme.colors.surface, RoundedCornerShape(16.dp))
+                    .padding(8.dp)) {
+                Text(
+                    modifier = Modifier.semantics { heading() },
+                    text = "主題/Theme",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                RadioTile(text = "默認", selected = themeType == ThemeType.StaticDefault) {
+                    themeType = ThemeType.StaticDefault
+                }
+                RadioTile(text = "動態取色", selected = themeType == ThemeType.DynamicNative) {
+                    themeType = ThemeType.DynamicNative
+                }
+            }
+            val nullableCustomBeanState: DataSaverMutableState<DataSaverBean?> = rememberDataSaverState(key = "nullable_bean", initialValue = null)
+            Text(text = "This is an example of saving custom Data Bean(nullable)") // 保存自定义类型的示例
+            Text(text = nullableCustomBeanState.value.toString())
+            Row(Modifier.fillMaxWidth()) {
+                Button(onClick = {
+                    nullableCustomBeanState.value = DataSaverBean(id = 100, label = "I'm not null")
+                }) {
+                    Text(text = "Set As Not Null")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Button(onClick = {
+                    nullableCustomBeanState.value = null
+                    // nullableCustomBeanState.remove(replacement = EmptyBean)
+                }) {
+                    Text(text = "Set As Null")
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Heading(text = "Save-When-Disposed Examples:")
+            SaveWhenDisposedExample()
+            Spacer(modifier = Modifier.height(16.dp))
+            Heading(text = "List Example")
+            LazyColumn(Modifier.heightIn(0.dp, 400.dp)) {
+                items(listExample) { item ->
+                    Text(modifier = Modifier.padding(8.dp), text = item.toString(), fontSize = 16.sp)
+                }
+                item {
+                    Row {
+                        Button(onClick = {
+                            listExample =
+                                listExample + emptyBean.copy(label = "Name ${listExample.size + 1}")
+                        }) {
+                            Text(text = "Add To List")
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Button(onClick = {
+                            if (listExample.isNotEmpty()) listExample = listExample.dropLast(1)
+                        }) {
+                            Text(text = "Remove From List")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun SaveWhenDisposedExample() {
+        var showDialog by remember {
+            mutableStateOf(false)
+        }
+        if (showDialog) AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(text = "Sample") },
+            text = {
+                var stringExample2 by rememberDataSaverState(
+                    key = KEY_STRING_EXAMPLE_2,
+                    initialValue = "this one will be saved only when disposed",
+                    savePolicy = SavePolicy.DISPOSED,
+                    async = false
+                )
+                OutlinedTextField(value = stringExample2, onValueChange = {
+                    stringExample2 = it
+                })
+            },
+            confirmButton = { TextButton(onClick = { showDialog = false }) { Text(text = "Close") } },
+        )
+        Button(onClick = { showDialog = true }) {
+            Text(text = "Click Me To Open Dialog")
+        }
+    }
+
+    @Composable
+    fun Heading(text: String) {
+        Text(text, fontWeight = FontWeight.W600, fontSize = 18.sp)
+    }
+
+    @Composable
+    fun RadioTile(
+        text: String,
+        selected: Boolean,
+        onClick: () -> Unit,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)) {
+            Text(text = text, fontSize = 24.sp, fontWeight = FontWeight.W700)
+            RadioButton(selected = selected, onClick = onClick)
+        }
+    }
 
     @Composable
     fun LazyListState.isScrollingUp(): Boolean {
@@ -5891,7 +6108,6 @@ class CountNumParentData(var countNum: Int) : ParentDataModifier {
     override fun Density.modifyParentData(parentData: Any?) = this@CountNumParentData
 }
 
-
 fun Modifier.count(context: Context, num: Int) = this
     .drawWithContent {
         drawIntoCanvas { canvas ->
@@ -5908,6 +6124,25 @@ fun Modifier.count(context: Context, num: Int) = this
     .then( // 这部分是 父级数据修饰符
         CountNumParentData(num)
     )
+
+fun Modifier.setModifiers(
+    animalCenterIndex: Int?,
+    i: Int,
+    animalBooleanState: Float
+): Modifier {
+    Log.e("currentValue=", "modifiers: "+animalCenterIndex.toString()+"=="+i )
+    return if (animalCenterIndex == i) {
+        this
+            .padding(bottom = 15.dp + (animalBooleanState * 100).dp)
+//          .width(25.dp)
+//          .height(25.dp)
+    } else {
+        this
+            .padding(bottom = 15.dp - (animalBooleanState * 10).dp)
+//          .width(25.dp)
+//          .height(25.dp)
+    }
+}
 
 /*
 * Copyright (c) 2022, smuyyh@gmail.com All Rights Reserved.

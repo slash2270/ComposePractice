@@ -1,12 +1,14 @@
 package com.example.composepractice.data
 
-import androidx.compose.material.Colors
+import android.os.Parcel
+import android.os.Parcelable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.serialization.Serializable
 
 data class Item(val name: String, val resId: Int) { var enable: Boolean by mutableStateOf(false) }
 data class AnimationSize(val color: Long, val size: Float)
@@ -16,6 +18,8 @@ data class Elevations(val card: Dp = 0.dp, val default: Dp = 0.dp)
 data class ButtonState(var text: String, var textColor: Color, var buttonColor: Color)
 data class MemberItemData(var imageID: Int, var text:String)
 data class MemberItemIdData(var id: Int, var imageID: Int, var text:String)
+@Serializable
+data class DataSaverBean(var id: Int, val label: String)
 
 object SampleData {
     val conversationSample = listOf(
@@ -85,4 +89,36 @@ object SampleData {
             "Have you tried writing build.gradle with KTS?"
         ),
     )
+}
+
+class DataSaverParcelable(val name: String?, val age: Int): Parcelable {
+    constructor(parcel: Parcel) : this(
+        parcel.readString(),
+        parcel.readInt()
+    ) {
+    }
+
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeString(name)
+        parcel.writeInt(age)
+    }
+
+    override fun describeContents(): Int {
+        return 0
+    }
+
+    override fun toString() = "I'm $name, my age is $age"
+
+
+    companion object CREATOR : Parcelable.Creator<DataSaverParcelable> {
+        override fun createFromParcel(parcel: Parcel): DataSaverParcelable {
+            return DataSaverParcelable(parcel)
+        }
+
+        override fun newArray(size: Int): Array<DataSaverParcelable?> {
+            return arrayOfNulls(size)
+        }
+    }
+
+    fun copy(name: String? = this.name, age: Int = this.age) = DataSaverParcelable(name, age)
 }

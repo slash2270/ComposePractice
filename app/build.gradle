@@ -88,4 +88,23 @@ dependencies {
     implementation("androidx.paging:paging-compose:1.0.0-alpha14")
     // Pager
     implementation("com.google.accompanist:accompanist-pager:0.24.12-rc")
+    // UCrop 裁切
+    implementation 'com.github.yalantis:ucrop:2.2.8'
+    // EasyCrop
+    implementation("io.github.mr0xf00:easycrop:0.1.0")
+    // MaterialColors
+    implementation "com.github.FunnySaltyFish:CMaterialColors:1.0.21"
+    // Serializable Json
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1"
+    // DataSaver 存儲
+    def data_saver_version = "v1.1.5"
+    implementation "com.github.FunnySaltyFish.ComposeDataSaver:data-saver:$data_saver_version"
+    implementation "com.github.FunnySaltyFish.ComposeDataSaver:data-saver-mmkv:$data_saver_version"
+    implementation "com.github.FunnySaltyFish.ComposeDataSaver:data-saver-data-store-preferences:$data_saver_version"
+    // DataStore 存儲
+    def data_store_version = "1.0.0"
+    implementation "androidx.datastore:datastore:$data_store_version"
+    implementation "androidx.datastore:datastore-preferences:$data_store_version"
+    // MMKV
+    implementation 'com.tencent:mmkv:1.2.15'
 }

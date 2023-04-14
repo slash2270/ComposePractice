@@ -9,7 +9,7 @@ class AnimationViewModel : ViewModel() {
     //首页选中项的索引
     private val _position = MutableLiveData(-1)
     //动画状态
-    val animalBoolean = mutableStateOf(true)
+    var animalBoolean = mutableStateOf(true)
     var position: LiveData<Int> = _position
     //选中索引数据刷新
     var bootomType=true
