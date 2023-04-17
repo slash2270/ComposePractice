@@ -3,14 +3,15 @@ package com.example.composepractice
 class Constants {
 
     companion object {
-        val CONTENT_DESCRIPTION = R.string.contentDescription
-        val ROUTE_MAIN = "MainActivity"
-        val ROUTE_ONE = "OneActivity?name={name}&age={age}"
-        val ROUTE_TWO = "TwoActivity"
-        val ROUTE_THREE = "ThreeActivity"
-        val ROUTE_FOUR = "FourActivity"
-        val ROUTE_FIVE = "FiveActivity"
-        val ROUTE_SIX = "SixActivity"
+        const val CONTENT_DESCRIPTION = R.string.contentDescription
+        const val ROUTE_MAIN = "MainActivity"
+        const val ROUTE_ONE = "OneActivity?name={name}&age={age}"
+        const val ROUTE_TWO = "TwoActivity"
+        const val ROUTE_THREE = "ThreeActivity"
+        const val ROUTE_FOUR = "FourActivity"
+        const val ROUTE_FIVE = "FiveActivity"
+        const val ROUTE_SIX = "SixActivity"
+        const val ROUTE_SEVEN = "SevenActivity"
         const val KEY_STRING_EXAMPLE = "key_string_example"
         const val KEY_BOOLEAN_EXAMPLE = "key_boolean_example"
         const val KEY_BEAN_EXAMPLE = "key_bean_example"

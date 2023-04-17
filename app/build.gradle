@@ -91,7 +91,7 @@ dependencies {
     // UCrop 裁切
     implementation 'com.github.yalantis:ucrop:2.2.8'
     // EasyCrop
-    implementation("io.github.mr0xf00:easycrop:0.1.0")
+    implementation("io.github.mr0xf00:easycrop:0.1.1")
     // MaterialColors
     implementation "com.github.FunnySaltyFish:CMaterialColors:1.0.21"
     // Serializable Json
@@ -107,4 +107,6 @@ dependencies {
     implementation "androidx.datastore:datastore-preferences:$data_store_version"
     // MMKV
     implementation 'com.tencent:mmkv:1.2.15'
+    // Coil 載圖
+    // implementation"io.coil-kt:coil-compose:2.3.0"
 }

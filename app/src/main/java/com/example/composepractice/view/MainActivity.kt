@@ -62,20 +62,18 @@ import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
@@ -103,11 +101,14 @@ import com.example.composepractice.Constants.Companion.ROUTE_FIVE
 import com.example.composepractice.Constants.Companion.ROUTE_FOUR
 import com.example.composepractice.Constants.Companion.ROUTE_MAIN
 import com.example.composepractice.Constants.Companion.ROUTE_ONE
+import com.example.composepractice.Constants.Companion.ROUTE_SEVEN
 import com.example.composepractice.Constants.Companion.ROUTE_SIX
 import com.example.composepractice.Constants.Companion.ROUTE_THREE
 import com.example.composepractice.Constants.Companion.ROUTE_TWO
 import com.example.composepractice.R
+import com.example.composepractice.components.OverlayImagePainter
 import com.example.composepractice.components.ScrollableAppBar
+import com.example.composepractice.components.SquashedOval
 import com.example.composepractice.data.*
 import com.example.composepractice.model.ThemeType
 import com.example.composepractice.ui.theme.BloomTheme
@@ -123,7 +124,6 @@ import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
 import com.skydoves.landscapist.coil.CoilImage
 import com.tencent.mmkv.MMKV
-import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -133,8 +133,10 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlin.random.Random
 import kotlin.ranges.coerceAtLeast
 import kotlin.reflect.KProperty
@@ -148,7 +150,7 @@ interface SampleInterface {
 class MainActivity : ComponentActivity(), SampleInterface {
 
     private val localInterface = staticCompositionLocalOf<SampleInterface> { error("Not provided") }
-    private val Context.dataStore : DataStore<Preferences> by preferencesDataStore("dataStore")
+    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("dataStore")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MMKV.initialize(applicationContext)
@@ -169,7 +171,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    CompositionLocalProvider(LocalDataSaver provides dataSaverMMKV){
+                    CompositionLocalProvider(LocalDataSaver provides dataSaverMMKV) {
                         PageJumpSamples(Message("Android", "Jetpack Compose"))
                     }
                 }
@@ -205,7 +207,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun MessageCard(context: Context, msg: Message, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, navController: NavController, colors: Colors, shapes: Shapes, typography: Typography, style: TextStyle) {
+    fun MessageCard(
+        context: Context,
+        msg: Message,
+        scaffoldState: ScaffoldState,
+        coroutineScope: CoroutineScope,
+        navController: NavController,
+        colors: Colors,
+        shapes: Shapes,
+        typography: Typography,
+        style: TextStyle
+    ) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -223,7 +235,10 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     repeat(1) {
                         Column {
                             ComposePracticeTheme(darkTheme = false) {
-                                Greeting(coroutineScope = coroutineScope, name = "Preview Composable")
+                                Greeting(
+                                    coroutineScope = coroutineScope,
+                                    name = "Preview Composable"
+                                )
                             }
                             Row(horizontalArrangement = Arrangement.SpaceAround) {
                                 Row(modifier = Modifier
@@ -323,7 +338,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     )
                                 )
                             }
-                            ListText(list = listText, colors = colors, style = style)
+                            ListText(
+                                coroutineScope = coroutineScope,
+                                navController = navController,
+                                list = listText,
+                                colors = colors,
+                                style = style
+                            )
                             val listVersion by remember {
                                 mutableStateOf(
                                     listOf(
@@ -362,7 +383,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     Spacer(
                                         Modifier
                                             .matchParentSize()
-                                            .background(Color.Gray))
+                                            .background(Color.Gray)
+                                    )
                                     Text(
                                         text = "modifier order",
                                         color = colors.error,
@@ -378,7 +400,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     Spacer(
                                         Modifier
                                             .matchParentSize()
-                                            .background(Color.Gray))
+                                            .background(Color.Gray)
+                                    )
                                     Text(
                                         text = "modifier order",
                                         color = colors.error,
@@ -400,7 +423,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             )
                             SnapShotFlow(colors = colors, style = style)
                             LazyListStateDemo(colors = colors, style = style)
-                            ReorganizationLoopDemo(coroutineScope = coroutineScope, colors = colors, style = style)
+                            ReorganizationLoopDemo(
+                                coroutineScope = coroutineScope,
+                                colors = colors,
+                                style = style
+                            )
                             val list = listOf(
                                 "Activity Manager",
                                 "Window Manager",
@@ -439,13 +466,37 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 MoveBoxWhereTapped()
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Route(coroutineScope = coroutineScope, colors = colors, style = style, navController = navController, route = 1)
+                                Route(
+                                    coroutineScope = coroutineScope,
+                                    colors = colors,
+                                    style = style,
+                                    navController = navController,
+                                    route = 1
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Route(coroutineScope = coroutineScope, colors = colors, style = style, navController = navController, route = 2)
+                                Route(
+                                    coroutineScope = coroutineScope,
+                                    colors = colors,
+                                    style = style,
+                                    navController = navController,
+                                    route = 2
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Route(coroutineScope = coroutineScope, colors = colors, style = style, navController = navController, route = 3)
+                                Route(
+                                    coroutineScope = coroutineScope,
+                                    colors = colors,
+                                    style = style,
+                                    navController = navController,
+                                    route = 3
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Route(coroutineScope = coroutineScope, colors = colors, style = style, navController = navController, route = 4)
+                                Route(
+                                    coroutineScope = coroutineScope,
+                                    colors = colors,
+                                    style = style,
+                                    navController = navController,
+                                    route = 4
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
                             }
                             LaunchedEffect(null, Dispatchers.IO) {
@@ -560,7 +611,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun ListText(list: List<String>, colors: Colors, style: TextStyle) {
+    fun ListText(
+        coroutineScope: CoroutineScope,
+        navController: NavController,
+        list: List<String>,
+        colors: Colors,
+        style: TextStyle
+    ) {
         Row(horizontalArrangement = Arrangement.SpaceAround) {
             Row(modifier = Modifier.weight(8.4f)) {
                 Text(
@@ -575,6 +632,20 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             text = "$item, ",
                             color = colors.primarySurface,
                             style = style,
+                            modifier = Modifier.clickable {
+                                when (item) {
+                                    "Cupcake" -> {
+                                        coroutineScope.launch(Dispatchers.Main) {
+                                            navController.navigate(route = ROUTE_SEVEN) {
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    }
+                                    else -> {
+
+                                    }
+                                }
+                            }
                         )
                     }
                 }
@@ -718,7 +789,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun SaverScreen(style: TextStyle) {
-        val selected = rememberSaveable(stateSaver = saver) { mutableStateOf(ParcelizeBean("TW", "Saver")) }
+        val selected =
+            rememberSaveable(stateSaver = saver) { mutableStateOf(ParcelizeBean("TW", "Saver")) }
         RestoreStateText(text = selected.value.value, style = style)
     }
 
@@ -928,7 +1000,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun RememberCoroutineScope(context: Context, rememberCoroutineScope: CoroutineScope, scaffoldState: ScaffoldState, colors: Colors, style: TextStyle) {
+    fun RememberCoroutineScope(
+        context: Context,
+        rememberCoroutineScope: CoroutineScope,
+        scaffoldState: ScaffoldState,
+        colors: Colors,
+        style: TextStyle
+    ) {
         // 創建綁定到 RememberCoroutineScope 生命週期的 CoroutineScope
         // `LaunchedEffect` 將取消並重新啟動 `scaffoldState.snackBarHostState` 變化
         val verticalArrangement = Arrangement.Center
@@ -1243,7 +1321,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     private fun StatusRead(colors: Colors, style: TextStyle) {
-        val mutableState: MutableState<String> = remember { mutableStateOf("MutableState") } // 狀態與屬性委託一起讀取
+        val mutableState: MutableState<String> =
+            remember { mutableStateOf("MutableState") } // 狀態與屬性委託一起讀取
         val rememberState: String by remember { mutableStateOf("RememberState") } // 使用屬性委託讀取狀態。
         val offsetX by remember { mutableStateOf((-4).dp) }
         val color by remember { mutableStateOf(colors.error) }
@@ -1394,7 +1473,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Spacer(modifier = Modifier.width(4.dp))
                 }
                 item {
-                    val listColor = listOf(Color.Green, Color.Blue, Color.Red, Color.Yellow, Color.Cyan)
+                    val listColor =
+                        listOf(Color.Green, Color.Blue, Color.Red, Color.Yellow, Color.Cyan)
                     GradientButton(coroutineScope = coroutineScope, background = listColor) {
                         repeat(listColor.size) {
                             Text(
@@ -1454,7 +1534,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun GradientButton(coroutineScope: CoroutineScope, background: List<Color>, content: @Composable RowScope.() -> Unit) {
+    fun GradientButton(
+        coroutineScope: CoroutineScope,
+        background: List<Color>,
+        content: @Composable RowScope.() -> Unit
+    ) {
         Row(
             modifier = Modifier
                 .clickable {
@@ -1511,7 +1595,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun DerivedStateList(coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, list: List<String>, modifier: Modifier) {
+    fun DerivedStateList(
+        coroutineScope: CoroutineScope,
+        colors: Colors,
+        style: TextStyle,
+        list: List<String>,
+        modifier: Modifier
+    ) {
         val listState = rememberLazyListState()
         LazyRow(state = listState, modifier = modifier) {
             item {
@@ -1740,8 +1830,14 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun Route(coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, navController: NavController, route: Int) {
-        val routeName = when(route) {
+    fun Route(
+        coroutineScope: CoroutineScope,
+        colors: Colors,
+        style: TextStyle,
+        navController: NavController,
+        route: Int
+    ) {
+        val routeName = when (route) {
             1 -> {
                 ROUTE_ONE
             }
@@ -1758,7 +1854,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 ""
             }
         }
-        val text = when(routeName) {
+        val text = when (routeName) {
             ROUTE_ONE -> {
                 "OneActivity"
             }
@@ -1823,7 +1919,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 composable(
                     route = ROUTE_MAIN,
                 ) {
-                    ActivityMain(context = context, msg = msg, scaffoldState = scaffoldState, coroutineScope = coroutineScope, navController = navController, colors = colors, shapes = shapes, typography = typography, style = style)
+                    ActivityMain(
+                        context = context,
+                        msg = msg,
+                        scaffoldState = scaffoldState,
+                        coroutineScope = coroutineScope,
+                        navController = navController,
+                        colors = colors,
+                        shapes = shapes,
+                        typography = typography,
+                        style = style
+                    )
                 }
                 composable(
                     //方法一
@@ -1838,32 +1944,84 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         defaultValue = 34
                     })
                 ) {
-                    ActivityOne(context = context, name = it.arguments?.getString("name") ?: "Tony", it.arguments?.getInt("age") ?: -1, scaffoldState = scaffoldState, coroutineScope = coroutineScope, colors = colors, style = style, shapes = shapes, typography = typography, elevations = elevations, localElevation = LocalElevations) {
+                    ActivityOne(
+                        context = context,
+                        name = it.arguments?.getString("name") ?: "Tony",
+                        it.arguments?.getInt("age") ?: -1,
+                        scaffoldState = scaffoldState,
+                        coroutineScope = coroutineScope,
+                        colors = colors,
+                        style = style,
+                        shapes = shapes,
+                        typography = typography,
+                        elevations = elevations,
+                        localElevation = LocalElevations
+                    ) {
                         navController.popBackStack()
                     }
                 }
                 composable(route = ROUTE_TWO) {
-                    ActivityTwo(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
+                    ActivityTwo(
+                        context = context,
+                        coroutineScope = coroutineScope,
+                        colors = colors,
+                        shapes = shapes,
+                        typography = typography,
+                        style = style
+                    ) {
                         navController.popBackStack()
                     }
                 }
                 composable(route = ROUTE_THREE) {
-                    ActivityThree(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
+                    ActivityThree(
+                        context = context,
+                        coroutineScope = coroutineScope,
+                        colors = colors,
+                        shapes = shapes,
+                        typography = typography,
+                        style = style
+                    ) {
                         navController.popBackStack()
                     }
                 }
                 composable(route = ROUTE_FOUR) {
-                    ActivityFour(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
+                    ActivityFour(
+                        context = context,
+                        coroutineScope = coroutineScope,
+                        colors = colors,
+                        shapes = shapes,
+                        typography = typography,
+                        style = style
+                    ) {
                         navController.popBackStack()
                     }
                 }
                 composable(route = ROUTE_FIVE) {
-                    ActivityFive(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
+                    ActivityFive(
+                        context = context,
+                        coroutineScope = coroutineScope,
+                        colors = colors,
+                        shapes = shapes,
+                        typography = typography,
+                        style = style
+                    ) {
                         navController.popBackStack()
                     }
                 }
                 composable(route = ROUTE_SIX) {
-                    ActivitySix(context = context, coroutineScope = coroutineScope, colors = colors, shapes = shapes, typography = typography, style = style) {
+                    ActivitySix(coroutineScope = coroutineScope, colors = colors) {
+                        navController.popBackStack()
+                    }
+                }
+                composable(route = ROUTE_SEVEN) {
+                    ActivitySeven(
+                        context = context,
+                        coroutineScope = coroutineScope,
+                        colors = colors,
+                        shapes = shapes,
+                        typography = typography,
+                        style = style
+                    ) {
                         navController.popBackStack()
                     }
                 }
@@ -1896,13 +2054,46 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun ActivityMain(context: Context, msg: Message, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, navController: NavController, colors: Colors, shapes: Shapes, typography: Typography, style: TextStyle) {
-        MessageCard(context = context, msg = msg, scaffoldState = scaffoldState, coroutineScope = coroutineScope, navController = navController, colors = colors, shapes = shapes, typography = typography, style = style)
+    fun ActivityMain(
+        context: Context,
+        msg: Message,
+        scaffoldState: ScaffoldState,
+        coroutineScope: CoroutineScope,
+        navController: NavController,
+        colors: Colors,
+        shapes: Shapes,
+        typography: Typography,
+        style: TextStyle
+    ) {
+        MessageCard(
+            context = context,
+            msg = msg,
+            scaffoldState = scaffoldState,
+            coroutineScope = coroutineScope,
+            navController = navController,
+            colors = colors,
+            shapes = shapes,
+            typography = typography,
+            style = style
+        )
     }
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun ActivityOne(context: Context, name: String, age: Int, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, elevations: Elevations, localElevation: ProvidableCompositionLocal<Elevations>, navigation: () -> Unit) {
+    fun ActivityOne(
+        context: Context,
+        name: String,
+        age: Int,
+        scaffoldState: ScaffoldState,
+        coroutineScope: CoroutineScope,
+        colors: Colors,
+        style: TextStyle,
+        shapes: Shapes,
+        typography: Typography,
+        elevations: Elevations,
+        localElevation: ProvidableCompositionLocal<Elevations>,
+        navigation: () -> Unit
+    ) {
         val modalDrawer = rememberDrawerState(DrawerValue.Closed)
         val bottomDrawer = rememberBottomDrawerState(BottomDrawerValue.Closed)
         Scaffold(
@@ -1918,7 +2109,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     }
                                 }
                             }) {
-                            Icon(tint = colors.onError,
+                            Icon(
+                                tint = colors.onError,
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = getString(CONTENT_DESCRIPTION)
                             )
@@ -1931,7 +2123,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     }
                                 }
                             }) {
-                            Icon(tint = colors.onError,
+                            Icon(
+                                tint = colors.onError,
                                 imageVector = Icons.Default.Home,
                                 contentDescription = getString(CONTENT_DESCRIPTION)
                             )
@@ -1946,7 +2139,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             content = {
                                 IconButton(onClick = {
                                 }) {
-                                    Icon(Icons.Filled.Info, getString(CONTENT_DESCRIPTION), tint = Color.White)
+                                    Icon(
+                                        Icons.Filled.Info,
+                                        getString(CONTENT_DESCRIPTION),
+                                        tint = Color.White
+                                    )
                                 }
                             },
                             onClick = {
@@ -1954,7 +2151,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 }
                             })
                         Spacer(modifier = Modifier.width(4.dp))
-                        Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
+                        Icon(
+                            tint = colors.onError,
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = getString(CONTENT_DESCRIPTION)
+                        )
                         Text(
                             text = "更多",
                             color = colors.onError,
@@ -1976,7 +2177,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         onClick = {
                             coroutineScope.launch(Dispatchers.IO) {
                                 // 默認 SnackBarDuration.Short
-                                val result = scaffoldState.snackbarHostState.showSnackbar(message = "SnackBar", actionLabel = "Cancel", duration = SnackbarDuration.Indefinite)
+                                val result = scaffoldState.snackbarHostState.showSnackbar(
+                                    message = "SnackBar",
+                                    actionLabel = "Cancel",
+                                    duration = SnackbarDuration.Indefinite
+                                )
                                 when (result) {
                                     SnackbarResult.ActionPerformed -> {
 
@@ -1987,7 +2192,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 }
                             }
                         }) {
-                        Icon(Icons.Filled.Favorite, getString(CONTENT_DESCRIPTION), tint = colors.onError)
+                        Icon(
+                            Icons.Filled.Favorite,
+                            getString(CONTENT_DESCRIPTION),
+                            tint = colors.onError
+                        )
                     }
                 }
             },
@@ -2004,9 +2213,19 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 )
             },
             drawerContent = {
-                Text("Drawer Header", color = colors.onError, modifier = Modifier.padding(16.dp), fontSize = 24.sp)
+                Text(
+                    "Drawer Header",
+                    color = colors.onError,
+                    modifier = Modifier.padding(16.dp),
+                    fontSize = 24.sp
+                )
                 Divider()
-                Text("Drawer List", color = colors.onError, modifier = Modifier.padding(16.dp), fontSize = 18.sp)
+                Text(
+                    "Drawer List",
+                    color = colors.onError,
+                    modifier = Modifier.padding(16.dp),
+                    fontSize = 18.sp
+                )
             },
             drawerGesturesEnabled = true,
             isFloatingActionButtonDocked = true,
@@ -2017,10 +2236,14 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 CompositionLocalExample()
                 Row(modifier = Modifier.padding(4.dp, 0.dp)) {
                     Surface(elevation = elevations.default, color = Color.Transparent) {
-                        Text(text = "我是${name}今年${age}歲", color = colors.secondaryVariant, fontSize = 12.sp, modifier = Modifier.clickable {
-                            coroutineScope.launch(Dispatchers.Main) {
-                            }
-                        })
+                        Text(
+                            text = "我是${name}今年${age}歲",
+                            color = colors.secondaryVariant,
+                            fontSize = 12.sp,
+                            modifier = Modifier.clickable {
+                                coroutineScope.launch(Dispatchers.Main) {
+                                }
+                            })
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     Surface(color = colors.onPrimary, modifier = Modifier
@@ -2048,10 +2271,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     // 訪問全局定義的 LocalElevations 變量以獲取 Composition 這部分的當前 Elevations
-                    Card(elevation = localElevation.current.card, backgroundColor = Color.Transparent) {
-                        Text(text = "CompositionLocalProvider", color = Color.Red, fontSize = 12.sp, modifier = Modifier.clickable {
+                    Card(
+                        elevation = localElevation.current.card,
+                        backgroundColor = Color.Transparent
+                    ) {
+                        Text(
+                            text = "CompositionLocalProvider",
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            modifier = Modifier.clickable {
 
-                        })
+                            })
                     }
                     Surface(color = colors.onPrimary, modifier = Modifier
                         .height(20.dp)
@@ -2104,13 +2334,22 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         .height(60.dp),
                     drawerState = modalDrawer,
                     drawerContent = {
-                        Text("Modal Drawer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                        Text(
+                            "Modal Drawer Header",
+                            color = colors.onError,
+                            modifier = Modifier.padding(4.dp),
+                            fontSize = 14.sp
+                        )
                         Divider()
-                        Row{
+                        Row {
                             repeat(5) {
-                                Text("Modal Drawer List ", color = colors.onError, modifier = Modifier
-                                    .padding(4.dp)
-                                    .clickable { }, fontSize = 10.sp)
+                                Text("Modal Drawer List ",
+                                    color = colors.onError,
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .clickable { },
+                                    fontSize = 10.sp
+                                )
                             }
                         }
                     },
@@ -2120,12 +2359,18 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 BottomDrawer(
                     drawerState = bottomDrawer,
                     drawerContent = {
-                        Text("Bottom Drawer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                        Text(
+                            "Bottom Drawer Header",
+                            color = colors.onError,
+                            modifier = Modifier.padding(4.dp),
+                            fontSize = 14.sp
+                        )
                         Divider()
                         repeat(20) {
                             Text("Bottom Drawer List", color = colors.onError, modifier = Modifier
                                 .padding(4.dp)
-                                .clickable { }, fontSize = 10.sp)
+                                .clickable { }, fontSize = 10.sp
+                            )
                         }
                     }
                 ) {
@@ -2169,7 +2414,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     @Composable
     fun CustomColumnLayout(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
         Layout(modifier = modifier, content = content) { measureAbles: List<Measurable>,
-            constraints: Constraints ->
+                                                         constraints: Constraints ->
             // placeAbles 是经过测量的子元素，它拥有自身的尺寸值
             val placeAbles = measureAbles.map { measureAble ->
                 // 测量所有子元素，这里不编写任何自定义测量逻辑，只是简单地
@@ -2258,22 +2503,37 @@ class MainActivity : ComponentActivity(), SampleInterface {
         val openDialog3 = remember { mutableStateOf(false) }
 
         Row {
-            Text("AlertDialogOne", color = colors.secondaryVariant, fontSize = 12.sp, modifier = Modifier.clickable {
-                openDialog1.value = true
-            })
+            Text(
+                "AlertDialogOne",
+                color = colors.secondaryVariant,
+                fontSize = 12.sp,
+                modifier = Modifier.clickable {
+                    openDialog1.value = true
+                })
             Spacer(modifier = Modifier.width(4.dp))
-            Text("AlertDialogTwo", color = colors.secondaryVariant, fontSize = 12.sp, modifier = Modifier.clickable {
-                openDialog2.value = true
-            })
+            Text(
+                "AlertDialogTwo",
+                color = colors.secondaryVariant,
+                fontSize = 12.sp,
+                modifier = Modifier.clickable {
+                    openDialog2.value = true
+                })
             Spacer(modifier = Modifier.width(4.dp))
-            Text("LinearProgressDialog", color = colors.secondaryVariant, fontSize = 12.sp, modifier = Modifier.clickable {
-                openDialog3.value = true
-            })
+            Text(
+                "LinearProgressDialog",
+                color = colors.secondaryVariant,
+                fontSize = 12.sp,
+                modifier = Modifier.clickable {
+                    openDialog3.value = true
+                })
         }
 
-        if(openDialog1.value) openDialog1.value = alertDialogOne(openDialog = openDialog1, colors = colors)
-        if(openDialog2.value) openDialog2.value = alertDialogTwo(openDialog = openDialog2, colors = colors)
-        if(openDialog3.value) openDialog3.value = linearProgressDialog(openDialog = openDialog3, colors = colors)
+        if (openDialog1.value) openDialog1.value =
+            alertDialogOne(openDialog = openDialog1, colors = colors)
+        if (openDialog2.value) openDialog2.value =
+            alertDialogTwo(openDialog = openDialog2, colors = colors)
+        if (openDialog3.value) openDialog3.value =
+            linearProgressDialog(openDialog = openDialog3, colors = colors)
     }
 
     @Composable
@@ -2415,8 +2675,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
         val interactionState = remember { MutableInteractionSource() }
         // 使用 Kotlin 的解構方法
         val (text, textColor, buttonColor) = when {
-            interactionState.collectIsPressedAsState().value  -> ButtonState("Just Pressed", Color.Red, colors.onSecondary)
-            else -> ButtonState( "Just Button", colors.onError, Color.Red)
+            interactionState.collectIsPressedAsState().value -> ButtonState(
+                "Just Pressed",
+                Color.Red,
+                colors.onSecondary
+            )
+            else -> ButtonState("Just Button", colors.onError, Color.Red)
         }
         Button(
             elevation = null,
@@ -2450,7 +2714,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 Text(
                     buildAnnotatedString {
                         append("歡迎來到 ")
-                        withStyle(style = SpanStyle(fontWeight = FontWeight.W900, color = Color(0xFF4552B8))
+                        withStyle(
+                            style = SpanStyle(
+                                fontWeight = FontWeight.W900,
+                                color = Color(0xFF4552B8)
+                            )
                         ) {
                             append("Jetpack Compose 博物館")
                         }
@@ -2515,7 +2783,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
             }
             .build()
         var flag by remember { mutableStateOf(false) }
-        val size by animateDpAsState(targetValue = if(flag) 450.dp else 50.dp)
+        val size by animateDpAsState(targetValue = if (flag) 450.dp else 50.dp)
         CoilImage(
             imageModel = "https://coil-kt.github.io/coil/images/coil_logo_black.svg",
             contentDescription = null,
@@ -2534,7 +2802,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun SliderDemo(colors: Colors) { // 圆圈的颜色
-        var progress by remember{ mutableStateOf(0f)}
+        var progress by remember { mutableStateOf(0f) }
         // 滑條未經過部分的默認 alpha 值
         val inactiveTrackAlpha = 0.24f
         // 當滑條被禁用的狀態下已經過部分的默認 alpha 值
@@ -2552,7 +2820,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
             value = progress,
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colors.primary,
-                disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
+                disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled)
+                    .compositeOver(MaterialTheme.colors.surface),
                 activeTrackColor = MaterialTheme.colors.primary,
                 inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
                 disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
@@ -2625,7 +2894,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun TextEmphasisEffect() {
-        Row{
+        Row {
             // 将内部 Text 组件的 alpha 强调程度设置为高
             // 注意: MaterialTheme 已经默认将强调程度设置为 high
             CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
@@ -2646,10 +2915,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun BasicTextFieldDemo() {
-        var text by remember{mutableStateOf("")}
-        var passwordHidden by remember{ mutableStateOf(false)}
-        Box(modifier = Modifier
-            .size(300.dp, 120.dp)) {
+        var text by remember { mutableStateOf("") }
+        var passwordHidden by remember { mutableStateOf(false) }
+        Box(
+            modifier = Modifier
+                .size(300.dp, 120.dp)
+        ) {
             TextField(
                 value = text,
                 onValueChange = {
@@ -2667,7 +2938,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         onClick = {
                             passwordHidden = !passwordHidden
                         }
-                    ){
+                    ) {
                         Icon(painterResource(id = R.drawable.ic_launcher_foreground), null)
                     }
                 },
@@ -2675,7 +2946,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Text("密碼")
                 },
                 singleLine = true,
-                visualTransformation = if(passwordHidden) PasswordVisualTransformation() else VisualTransformation.None
+                visualTransformation = if (passwordHidden) PasswordVisualTransformation() else VisualTransformation.None
             )
         }
 //        var text by remember { mutableStateOf("") }
@@ -2789,10 +3060,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun IntrinsicPropertyMeasurementDemo1(modifier: Modifier = Modifier, text1: String, text2: String, style: TextStyle) {
-        Row(modifier = modifier
-            .height(IntrinsicSize.Min)
-            .width(180.dp)) {
+    fun IntrinsicPropertyMeasurementDemo1(
+        modifier: Modifier = Modifier,
+        text1: String,
+        text2: String,
+        style: TextStyle
+    ) {
+        Row(
+            modifier = modifier
+                .height(IntrinsicSize.Min)
+                .width(180.dp)
+        ) {
             Text(
                 modifier = Modifier
                     .weight(1f)
@@ -2801,9 +3079,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 text = text1,
                 style = style
             )
-            Divider(color = Color.Black, modifier = Modifier
-                .fillMaxHeight()
-                .width(1.dp))
+            Divider(
+                color = Color.Black, modifier = Modifier
+                    .fillMaxHeight()
+                    .width(1.dp)
+            )
             Text(
                 modifier = Modifier
                     .weight(1f)
@@ -2821,13 +3101,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
             Box(
                 Modifier
                     .size(20.dp)
-                    .background(colors.primaryVariant)) {
+                    .background(colors.primaryVariant)
+            ) {
                 Text(text = "Jetpack Compose is an", color = colors.onError, style = style)
             }
             Box(
                 Modifier
                     .size(20.dp)
-                    .background(colors.secondaryVariant)) {
+                    .background(colors.secondaryVariant)
+            ) {
                 Text(text = "excellent development tool", color = colors.onError, style = style)
             }
         }
@@ -2838,15 +3120,19 @@ class MainActivity : ComponentActivity(), SampleInterface {
         Layout(
             content = content,
             modifier = modifier,
-            measurePolicy = object: MeasurePolicy {
-                override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints): MeasureResult {
+            measurePolicy = object : MeasurePolicy {
+                override fun MeasureScope.measure(
+                    measurables: List<Measurable>,
+                    constraints: Constraints
+                ): MeasureResult {
                     val divideConstraints = constraints.copy(minWidth = 0)
                     val mainPlaceAbles = measurables.filter {
                         it.layoutId == "main"
                     }.map {
                         it.measure(constraints)
                     }
-                    val dividePlaceable = measurables.first { it.layoutId == "divider"}.measure(divideConstraints)
+                    val dividePlaceable =
+                        measurables.first { it.layoutId == "divider" }.measure(divideConstraints)
                     val midPos = constraints.maxWidth / 2
                     return layout(constraints.maxWidth, constraints.maxHeight) {
                         mainPlaceAbles.forEach {
@@ -2856,7 +3142,10 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                 }
 
-                override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int {
+                override fun IntrinsicMeasureScope.minIntrinsicHeight(
+                    measurables: List<IntrinsicMeasurable>,
+                    width: Int
+                ): Int {
                     var maxHeight = 0
                     measurables.forEach {
                         maxHeight = it.maxIntrinsicHeight(width).coerceAtLeast(maxHeight)
@@ -2868,8 +3157,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun SubcomposeRow(modifier: Modifier, text: @Composable () -> Unit, divider: @Composable (Int) -> Unit) { // 傳入高度
-        SubcomposeLayout(modifier = modifier) { constraints->
+    fun SubcomposeRow(
+        modifier: Modifier,
+        text: @Composable () -> Unit,
+        divider: @Composable (Int) -> Unit
+    ) { // 傳入高度
+        SubcomposeLayout(modifier = modifier) { constraints ->
             var maxHeight = 0
             val placeAbles = subcompose("text", text).map {
                 val placeable = it.measure(constraints)
@@ -2882,7 +3175,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 it.measure(constraints.copy(minWidth = 0))
             }
             assert(dividerPlaceable.size == 1) { "DividerScope Error!" }
-            layout(constraints.maxWidth, constraints.maxHeight){
+            layout(constraints.maxWidth, constraints.maxHeight) {
                 placeAbles.forEach {
                     it.placeRelative(0, 0)
                 }
@@ -2895,14 +3188,18 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun ParentDataBox() { // 父元素
-        Box(modifier = Modifier
-            .width(50.dp)
-            .height(50.dp)
-            .background(Color.Yellow)){ // 子元素
-            Box(modifier = Modifier
-                .align(Alignment.Center)
-                .size(25.dp)
-                .background(Color.Blue))
+        Box(
+            modifier = Modifier
+                .width(50.dp)
+                .height(50.dp)
+                .background(Color.Yellow)
+        ) { // 子元素
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(25.dp)
+                    .background(Color.Blue)
+            )
         }
     }
 
@@ -2922,7 +3219,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     private fun randomColor(count: Int): Color {
-        return when(count) {
+        return when (count) {
             1 -> Color.Gray
             2 -> Color.LightGray
             3 -> Color.DarkGray
@@ -2933,10 +3230,10 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     interface VerticalScope {
         @Stable
-        fun Modifier.weight(weight: Float) : Modifier
+        fun Modifier.weight(weight: Float): Modifier
     }
 
-    class WeightParentData(val weight: Float=0f) : ParentDataModifier {
+    class WeightParentData(val weight: Float = 0f) : ParentDataModifier {
         override fun Density.modifyParentData(parentData: Any?) = this@WeightParentData
     }
 
@@ -2974,7 +3271,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
             }
         }
-        Layout(modifier = modifier, content = { VerticalScopeInstance.content() }, measurePolicy = measurePolicy)
+        Layout(
+            modifier = modifier,
+            content = { VerticalScopeInstance.content() },
+            measurePolicy = measurePolicy
+        )
     }
 
     @Composable
@@ -3011,14 +3312,27 @@ class MainActivity : ComponentActivity(), SampleInterface {
         navigation: () -> Unit
     ) {
         val scaffoldState = rememberBottomSheetScaffoldState()
-        val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, animationSpec = tween(1000))
+        val sheetState = rememberModalBottomSheetState(
+            initialValue = ModalBottomSheetValue.Hidden,
+            animationSpec = tween(1000)
+        )
         BottomSheetScaffold(
             scaffoldState = scaffoldState,
             sheetContent = {
-                Text("Modal Drawer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                Text(
+                    "Modal Drawer Header",
+                    color = colors.onError,
+                    modifier = Modifier.padding(4.dp),
+                    fontSize = 14.sp
+                )
                 Divider()
                 repeat(20) {
-                    Text("Modal Drawer List ", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
+                    Text(
+                        "Modal Drawer List ",
+                        color = colors.onError,
+                        modifier = Modifier.padding(4.dp),
+                        fontSize = 10.sp
+                    )
                 }
             },
             sheetPeekHeight = 128.dp,
@@ -3031,7 +3345,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     navigation()
                                 }
                             }) {
-                            Icon(tint = colors.onError,
+                            Icon(
+                                tint = colors.onError,
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = getString(CONTENT_DESCRIPTION)
                             )
@@ -3042,7 +3357,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             color = colors.onError,
                         )
                     }, actions = {
-                        Icon(tint = colors.onError, imageVector = Icons.Default.Menu, contentDescription = getString(CONTENT_DESCRIPTION))
+                        Icon(
+                            tint = colors.onError,
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = getString(CONTENT_DESCRIPTION)
+                        )
                         Text(
                             text = "菜單",
                             color = colors.onError,
@@ -3086,30 +3405,50 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Spacer(modifier = Modifier.width(4.dp))
                     IntrinsicPropertyMeasurementDemo2(colors = colors, style = style)
                     Spacer(modifier = Modifier.width(4.dp))
-                    IntrinsicRow(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min)) {
-                        Text(text = "Intrinsic", modifier = Modifier
-                            .wrapContentWidth(Alignment.Start)
-                            .layoutId("main"), style = style)
-                        Divider(color = Color.Black, modifier = Modifier
-                            .width(1.dp)
-                            .fillMaxHeight()
-                            .layoutId("divider"))
-                        Text(text = "Row", modifier = Modifier
-                            .wrapContentWidth(Alignment.End)
-                            .layoutId("main"), style = style)
+                    IntrinsicRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
+                    ) {
+                        Text(
+                            text = "Intrinsic", modifier = Modifier
+                                .wrapContentWidth(Alignment.Start)
+                                .layoutId("main"), style = style
+                        )
+                        Divider(
+                            color = Color.Black, modifier = Modifier
+                                .width(1.dp)
+                                .fillMaxHeight()
+                                .layoutId("divider")
+                        )
+                        Text(
+                            text = "Row", modifier = Modifier
+                                .wrapContentWidth(Alignment.End)
+                                .layoutId("main"), style = style
+                        )
                     }
                 }
                 Row {
-                    IntrinsicPropertyMeasurementDemo1(text1 = "Intrinsic", text2 = "Size", style = style)
+                    IntrinsicPropertyMeasurementDemo1(
+                        text1 = "Intrinsic",
+                        text2 = "Size",
+                        style = style
+                    )
                     SubcomposeRow(
                         modifier = Modifier
                             .width(180.dp)
                             .height(20.dp),
                         text = {
-                            Text(text = "Subcompose", Modifier.wrapContentWidth(Alignment.Start), style = style)
-                            Text(text = "Row", Modifier.wrapContentWidth(Alignment.End), style = style)
+                            Text(
+                                text = "Subcompose",
+                                Modifier.wrapContentWidth(Alignment.Start),
+                                style = style
+                            )
+                            Text(
+                                text = "Row",
+                                Modifier.wrapContentWidth(Alignment.End),
+                                style = style
+                            )
                         }
                     ) {
                         val heightPx = with(LocalDensity.current) { it.toDp() }
@@ -3122,12 +3461,14 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                 }
                 Row(modifier = Modifier.padding(4.dp, 0.dp)) {
-                    Box(modifier = Modifier
-                        .size(50.dp)
-                        .background(Color.Red)
-                        .wrapContentSize(align = Alignment.Center)
-                        .size(25.dp)
-                        .background(Color.Green))
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .background(Color.Red)
+                            .wrapContentSize(align = Alignment.Center)
+                            .size(25.dp)
+                            .background(Color.Green)
+                    )
                     ParentDataBox()
                     CountBox(context = context)
                 }
@@ -3137,19 +3478,26 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     WeightedVerticalLayout(
                         Modifier
                             .height(100.dp)
-                            .width(30.dp)) {
-                        Box(modifier = Modifier
                             .width(30.dp)
-                            .weight(1f)
-                            .background(randomColor(1)))
-                        Box(modifier = Modifier
-                            .width(30.dp)
-                            .weight(2f)
-                            .background(randomColor(2)))
-                        Box(modifier = Modifier
-                            .width(30.dp)
-                            .weight(7f)
-                            .background(randomColor(3)))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(30.dp)
+                                .weight(1f)
+                                .background(randomColor(1))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(30.dp)
+                                .weight(2f)
+                                .background(randomColor(2))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(30.dp)
+                                .weight(7f)
+                                .background(randomColor(3))
+                        )
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     AnimationBtn(colors, style)
@@ -3191,14 +3539,21 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 ModalBottomSheetLayout(
                     sheetState = sheetState,
                     sheetContent = { //这里显示底部弹窗内容
-                        Text("Bottom Sheet Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                        Text(
+                            "Bottom Sheet Header",
+                            color = colors.onError,
+                            modifier = Modifier.padding(4.dp),
+                            fontSize = 14.sp
+                        )
                         Divider()
                         repeat(20) {
                             Text("Bottom Sheet List", color = colors.onError, modifier = Modifier
                                 .padding(4.dp)
-                                .clickable { }, style = style)
+                                .clickable { }, style = style
+                            )
                         }
-                    }, content = { //处理后退事件，显示和隐藏必须用协程执行
+                    },
+                    content = { //处理后退事件，显示和隐藏必须用协程执行
                         BackHandler(sheetState.isVisible) {
                             coroutineScope.launch {
                                 sheetState.hide()
@@ -3215,13 +3570,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
         // 如果你在这里有 getValue 的报错，或者无法自动导入，这是一些旧版 Android Studio 还没有完全适配 Compose 的 bug。
         // 你需要手动导入，或者更新到最新的 AS
         // import androidx.compose.runtime.getValue
-        var state by remember{ mutableStateOf(true) }
+        var state by remember { mutableStateOf(true) }
         Surface(color = colors.surface) {
             Column(
                 modifier = Modifier.height(130.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
-            ){
+            ) {
                 AnimatedVisibility(visible = state) {
                     Text(
                         text = "垂直消失",
@@ -3252,9 +3607,14 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         .align(alignment = Alignment.CenterHorizontally),
                     color = colors.primary
                 ) {
-                    Text(if(state) "隱藏" else "顯示", color = Color.White, style = style, textAlign = TextAlign.Center, modifier = Modifier.clickable {
-                        state = !state
-                    })
+                    Text(
+                        if (state) "隱藏" else "顯示",
+                        color = Color.White,
+                        style = style,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.clickable {
+                            state = !state
+                        })
                 }
             }
         }
@@ -3262,14 +3622,14 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun AnimationContentSize(colors: Colors, style: TextStyle) {
-        var text by remember{ mutableStateOf("contentSize 動畫") }
+        var text by remember { mutableStateOf("contentSize 動畫") }
         Surface(color = colors.onPrimary) {
             Box(
                 modifier = Modifier
                     .height(130.dp)
                     .width(85.dp),
                 contentAlignment = Alignment.Center
-            ){
+            ) {
                 Text(text,
                     color = colors.onError,
                     modifier = Modifier
@@ -3285,22 +3645,29 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun AnimationCrossFade(colors: Colors, style: TextStyle) {
-        var flag by remember{ mutableStateOf(false) }
-        Column{
+        var flag by remember { mutableStateOf(false) }
+        Column {
             Crossfade(
                 targetState = flag, animationSpec = tween(1000)
             ) {
-                when(it){
+                when (it) {
                     false -> Screen1()
                     true -> Screen2()
                 }
             }
-            Surface(color = colors.onSecondary, modifier = Modifier
-                .size(50.dp, 20.dp)
-                .align(alignment = Alignment.CenterHorizontally)) {
-                Text("切換", color = colors.onError, style = style, textAlign = TextAlign.Center, modifier = Modifier.clickable {
-                    flag = !flag
-                })
+            Surface(
+                color = colors.onSecondary, modifier = Modifier
+                    .size(50.dp, 20.dp)
+                    .align(alignment = Alignment.CenterHorizontally)
+            ) {
+                Text(
+                    "切換",
+                    color = colors.onError,
+                    style = style,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.clickable {
+                        flag = !flag
+                    })
             }
         }
     }
@@ -3337,7 +3704,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
             animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
         )
         val colors = animateColorAsState(targetValue = if (enable.value) Color.Green else Color.Red)
-        val size = animateIntSizeAsState(targetValue = if (enable.value) IntSize(25, 25) else IntSize(50, 50))
+        val size = animateIntSizeAsState(
+            targetValue = if (enable.value) IntSize(25, 25) else IntSize(
+                50,
+                50
+            )
+        )
         Box(
             Modifier
                 .size(size.value.width.dp, size.value.height.dp)
@@ -3351,8 +3723,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun AnimationAnimatable() {
-        var flag by remember{ mutableStateOf(false) }
-        val color = remember{ Animatable(Color.Gray) }
+        var flag by remember { mutableStateOf(false) }
+        val color = remember { Animatable(Color.Gray) }
         Box(
             modifier = Modifier
                 .size(50.dp, 50.dp)
@@ -3366,7 +3738,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
         }
         LaunchedEffect(flag) {
             color.animateTo(
-                targetValue = if (flag){ Color.Green } else { Color.Red },
+                targetValue = if (flag) {
+                    Color.Green
+                } else {
+                    Color.Red
+                },
                 animationSpec = tween(1000)
             )
         }
@@ -3375,9 +3751,18 @@ class MainActivity : ComponentActivity(), SampleInterface {
     @Composable
     fun AnimationSnap() { // 立即将值切换到结束值
         val enable = remember { mutableStateOf(false) }
-        val alpha: Float by animateFloatAsState(targetValue = if (enable.value) 1f else 0.5f, animationSpec = snap(delayMillis = 1000))
-        val colors = animateColorAsState(targetValue = if (enable.value) Color.Cyan else Color.Magenta)
-        val size = animateIntSizeAsState(targetValue = if (enable.value) IntSize(25, 25) else IntSize(50, 50))
+        val alpha: Float by animateFloatAsState(
+            targetValue = if (enable.value) 1f else 0.5f,
+            animationSpec = snap(delayMillis = 1000)
+        )
+        val colors =
+            animateColorAsState(targetValue = if (enable.value) Color.Cyan else Color.Magenta)
+        val size = animateIntSizeAsState(
+            targetValue = if (enable.value) IntSize(25, 25) else IntSize(
+                50,
+                50
+            )
+        )
         Box(
             Modifier
                 .size(size.value.width.dp, size.value.height.dp)
@@ -3451,7 +3836,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
         Box(
             Modifier
                 .size(50.dp)
-                .background(color))
+                .background(color)
+        )
     }
 
     @Composable
@@ -3480,14 +3866,18 @@ class MainActivity : ComponentActivity(), SampleInterface {
             } while (!anim.isFinishedFromNanos(playTime))
 
         }
-        Box(modifier = Modifier.size(50.dp),contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.Center) {
             Box(modifier = Modifier
                 .size(animationValue.dp)
                 .background(Color.LightGray, shape = RoundedCornerShape(animationValue / 9))
                 .clickable {
                     state++
-                }, contentAlignment = Alignment.Center) {
-                Text(text = animationValue.toString(), style = TextStyle(color = Color.White, fontSize = (animationValue/9).sp))
+                }, contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = animationValue.toString(),
+                    style = TextStyle(color = Color.White, fontSize = (animationValue / 9).sp)
+                )
             }
         }
     }
@@ -3503,7 +3893,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
             )
         )
         Box(
-            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart
+        ) {
             Box(
                 Modifier
                     .width(value.value.dp)
@@ -3582,7 +3973,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
             )
         )
         Box(
-            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart
+        ) {
             Box(
                 Modifier
                     .width(value.dp)
@@ -3608,7 +4000,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
             )
         )
         Box(
-            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart
+        ) {
             Box(
                 Modifier
                     .width(value.dp)
@@ -3630,7 +4023,10 @@ class MainActivity : ComponentActivity(), SampleInterface {
     fun AnimationVector() {
         var state by remember { mutableStateOf(true) }
         val value by animateValueAsState(
-            targetValue = if (state) AnimationSize(0xffff5500, 100f) else AnimationSize(0xff00ff00, 300f),
+            targetValue = if (state) AnimationSize(0xffff5500, 100f) else AnimationSize(
+                0xff00ff00,
+                300f
+            ),
             typeConverter = TwoWayConverter(
                 convertToVector = {
 //                AnimationVector2D(target.color.toFloat(), target.size)
@@ -3661,7 +4057,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
     fun Gesture() {
         val offset = remember { Animatable(Offset(0f, 0f), Offset.VectorConverter) }
         Box(
-            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart) {
+            Modifier.size(170.dp, 50.dp), contentAlignment = Alignment.CenterStart
+        ) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -3703,7 +4100,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
     @Composable
-    fun ActivityThree(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, style: TextStyle, navigation: () -> Unit) {
+    fun ActivityThree(
+        context: Context,
+        coroutineScope: CoroutineScope,
+        colors: Colors,
+        shapes: Shapes,
+        typography: Typography,
+        style: TextStyle,
+        navigation: () -> Unit
+    ) {
         val scaffoldState = rememberBackdropScaffoldState(initialValue = BackdropValue.Concealed)
         BackdropScaffold(
             scaffoldState = scaffoldState,
@@ -3711,7 +4116,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 TopAppBar(navigationIcon = {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
-                        contentDescription = getString(CONTENT_DESCRIPTION), Modifier.clickable {
+                        contentDescription = getString(CONTENT_DESCRIPTION),
+                        Modifier.clickable {
                             coroutineScope.launch {
                                 navigation()
                             }
@@ -3720,7 +4126,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     )
                     Icon(
                         imageVector = Icons.Default.Menu,
-                        contentDescription = getString(CONTENT_DESCRIPTION), Modifier.clickable {
+                        contentDescription = getString(CONTENT_DESCRIPTION),
+                        Modifier.clickable {
                             coroutineScope.launch {
                                 if (scaffoldState.isConcealed) {
                                     scaffoldState.reveal()
@@ -3762,7 +4169,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     HorizontalPager(list = list, colors = colors, style = style)
                     Row {
                         Column(modifier = Modifier.width(125.dp)) {
-                            Text("BackLayer Header", color = colors.onPrimary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                            Text(
+                                "BackLayer Header",
+                                color = colors.onPrimary,
+                                modifier = Modifier.padding(4.dp),
+                                fontSize = 14.sp
+                            )
                             Divider()
                             ListWithHeader(colors = colors, style = style)
                         }
@@ -3775,7 +4187,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
             },
             frontLayerContent = {
                 Column {
-                    Text("FrontLayer Header", color = colors.onError, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                    Text(
+                        "FrontLayer Header",
+                        color = colors.onError,
+                        modifier = Modifier.padding(4.dp),
+                        fontSize = 14.sp
+                    )
                     Divider(color = colors.onSecondary, modifier = Modifier.height(1.dp))
                     Spacer(modifier = Modifier.height(10.dp))
                     Row {
@@ -3819,60 +4236,82 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 ScrollableExample(colors = colors, style = style)
                             }
-                            Spacer(modifier = Modifier
-                                .height(4.dp)
-                                .fillMaxWidth())
+                            Spacer(
+                                modifier = Modifier
+                                    .height(4.dp)
+                                    .fillMaxWidth()
+                            )
                             Row {
                                 ClickableDemo(style = style)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 CombinedClickDemo(style = style)
                             }
-                            Spacer(modifier = Modifier
-                                .height(4.dp)
-                                .fillMaxWidth())
+                            Spacer(
+                                modifier = Modifier
+                                    .height(4.dp)
+                                    .fillMaxWidth()
+                            )
                             DraggableDemo(colors = colors, style = style)
-                            Spacer(modifier = Modifier
-                                .height(4.dp)
-                                .fillMaxWidth())
+                            Spacer(
+                                modifier = Modifier
+                                    .height(4.dp)
+                                    .fillMaxWidth()
+                            )
                             SwipeableDemo(colors = colors, style = style)
-                            Spacer(modifier = Modifier
-                                .height(4.dp)
-                                .fillMaxWidth())
+                            Spacer(
+                                modifier = Modifier
+                                    .height(4.dp)
+                                    .fillMaxWidth()
+                            )
                             Row {
                                 HorizontalListDemo(colors = colors, style = style)
-                                Spacer(modifier = Modifier
-                                    .width(4.dp)
-                                    .fillMaxWidth())
+                                Spacer(
+                                    modifier = Modifier
+                                        .width(4.dp)
+                                        .fillMaxWidth()
+                                )
                                 HorizontalListTheme(colors = colors, style = style)
                             }
-                            Spacer(modifier = Modifier
-                                .height(4.dp)
-                                .fillMaxWidth())
+                            Spacer(
+                                modifier = Modifier
+                                    .height(4.dp)
+                                    .fillMaxWidth()
+                            )
                             Row {
                                 TransformerDemo(colors = colors, style = style)
-                                Spacer(modifier = Modifier
-                                    .width(4.dp)
-                                    .fillMaxWidth())
+                                Spacer(
+                                    modifier = Modifier
+                                        .width(4.dp)
+                                        .fillMaxWidth()
+                                )
                                 DragGestureDemo(colors = colors, style = style)
                             }
                         }
                     }
-                    Spacer(modifier = Modifier
-                        .height(4.dp)
-                        .fillMaxWidth())
+                    Spacer(
+                        modifier = Modifier
+                            .height(4.dp)
+                            .fillMaxWidth()
+                    )
                     Row {
                         NestedBoxDemo()
-                        Spacer(modifier = Modifier
-                            .width(4.dp)
-                            .fillMaxWidth())
+                        Spacer(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .fillMaxWidth()
+                        )
                         ConsumeDemo()
-                        Spacer(modifier = Modifier
-                            .width(4.dp)
-                            .fillMaxWidth())
+                        Spacer(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .fillMaxWidth()
+                        )
                         BaseDragGestureDemo(colors = colors, style = style)
-                        Spacer(modifier = Modifier
-                            .width(4.dp)
-                            .fillMaxWidth())
+                        Spacer(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .fillMaxWidth()
+                        )
                         AwaitDragOrCancellation(colors = colors, style = style)
                     }
                 }
@@ -3887,13 +4326,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun AnimationDefault(colors: Colors, style: TextStyle) {
-        var state by remember{ mutableStateOf(true)}
+        var state by remember { mutableStateOf(true) }
         Surface(color = colors.onError) {
             Column(
                 modifier = Modifier.size(75.dp, 100.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
-            ){
+            ) {
                 AnimatedVisibility(visible = state) {
                     Text(
                         text = "Animation\nDefault",
@@ -3903,7 +4342,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
                 Spacer(Modifier.padding(vertical = 16.dp))
                 Button(onClick = { state = !state }) {
-                    Text(if(state) "隱藏" else "顯示", color = colors.onSurface)
+                    Text(if (state) "隱藏" else "顯示", color = colors.onSurface)
                 }
             }
         }
@@ -3911,17 +4350,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun AnimationApproach(colors: Colors, style: TextStyle) {
-        var state by remember{ mutableStateOf(true)}
+        var state by remember { mutableStateOf(true) }
         Surface(color = colors.onError) {
             Column(
                 modifier = Modifier.size(75.dp, 100.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
-            ){
+            ) {
                 AnimatedVisibility(
                     visible = state,
                     enter = slideInVertically(
-                        initialOffsetY = { - 1000 },
+                        initialOffsetY = { -1000 },
                         animationSpec = tween(durationMillis = 1200)
                     )
                 ) {
@@ -3933,7 +4372,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
                 Spacer(Modifier.padding(vertical = 16.dp))
                 Button(onClick = { state = !state }) {
-                    Text(if(state) "隱藏" else "顯示", color = colors.onSurface)
+                    Text(if (state) "隱藏" else "顯示", color = colors.onSurface)
                 }
             }
         }
@@ -3941,17 +4380,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun AnimationEnterTransition(colors: Colors, style: TextStyle) {
-        var state by remember{ mutableStateOf(true)}
+        var state by remember { mutableStateOf(true) }
         Surface(color = colors.onError) {
             Column(
                 modifier = Modifier.size(75.dp, 100.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
-            ){
+            ) {
                 AnimatedVisibility(
                     visible = state,
                     enter = slideInVertically(
-                        initialOffsetY = { - 1000 },
+                        initialOffsetY = { -1000 },
                         animationSpec = tween(durationMillis = 1200)
                     ) + fadeIn(
                         animationSpec = tween(durationMillis = 1200)
@@ -3965,7 +4404,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
                 Spacer(Modifier.padding(vertical = 10.dp))
                 Button(onClick = { state = !state }) {
-                    Text(if(state) "隱藏" else "顯示", color = colors.onSurface)
+                    Text(if (state) "隱藏" else "顯示", color = colors.onSurface)
                 }
             }
         }
@@ -3973,12 +4412,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun AnimationIcon1() {
-        var change by remember{ mutableStateOf(false) }
-        var flag by remember{ mutableStateOf(false) }
+        var change by remember { mutableStateOf(false) }
+        var flag by remember { mutableStateOf(false) }
         val buttonSize by animateDpAsState(
-            targetValue = if(change) 32.dp else 24.dp
+            targetValue = if (change) 32.dp else 24.dp
         )
-        if(buttonSize == 32.dp) {
+        if (buttonSize == 32.dp) {
             change = false
         }
         IconButton(
@@ -3987,19 +4426,20 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 flag = !flag
             }
         ) {
-            Icon(Icons.Default.Favorite,
+            Icon(
+                Icons.Default.Favorite,
                 contentDescription = null,
                 modifier = Modifier.size(buttonSize),
-                tint = if(flag) Color.Red else Color.Gray
+                tint = if (flag) Color.Red else Color.Gray
             )
         }
     }
 
     @Composable
     fun AnimationSearchBar1() {
-        var text by remember{ mutableStateOf("") }
+        var text by remember { mutableStateOf("") }
         var focusState by remember { mutableStateOf(false) }
-        val size by animateFloatAsState(targetValue = if(focusState) 1f else 0.5f)
+        val size by animateFloatAsState(targetValue = if (focusState) 1f else 0.5f)
         Column(
             modifier = Modifier.size(120.dp, 52.dp)
         ) {
@@ -4020,14 +4460,14 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun AnimationIcon2() {
-        var change by remember{ mutableStateOf(false) }
-        var flag by remember{ mutableStateOf(false) }
+        var change by remember { mutableStateOf(false) }
+        var flag by remember { mutableStateOf(false) }
         val buttonSizeVariable = remember { Animatable(24.dp, Dp.Companion.VectorConverter) }
 
         LaunchedEffect(change) {
-            buttonSizeVariable.animateTo(if(change) 32.dp else 24.dp)
+            buttonSizeVariable.animateTo(if (change) 32.dp else 24.dp)
         }
-        if(buttonSizeVariable.value == 32.dp) {
+        if (buttonSizeVariable.value == 32.dp) {
             change = false
         }
         IconButton(
@@ -4040,19 +4480,19 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 Icons.Default.Favorite,
                 contentDescription = null,
                 modifier = Modifier.size(buttonSizeVariable.value),
-                tint = if(flag) Color.Red else Color.Gray
+                tint = if (flag) Color.Red else Color.Gray
             )
         }
     }
 
     @Composable
     fun AnimationSearchBar2() {
-        var text by remember{ mutableStateOf("") }
-        var focusState by remember { mutableStateOf(false)}
+        var text by remember { mutableStateOf("") }
+        var focusState by remember { mutableStateOf(false) }
         val sizeVariable = remember { Animatable(0f) }
 
         LaunchedEffect(focusState) {
-            sizeVariable.animateTo(if(focusState) 1f else 0.5f)
+            sizeVariable.animateTo(if (focusState) 1f else 0.5f)
         }
         Column(
             modifier = Modifier.size(154.dp, 52.dp)
@@ -4073,12 +4513,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     sealed class SwitchState {
-        object OPEN: SwitchState()
-        object CLOSE: SwitchState()
+        object OPEN : SwitchState()
+        object CLOSE : SwitchState()
     }
 
     @Composable
-    fun SwitchBlock(style: TextStyle){
+    fun SwitchBlock(style: TextStyle) {
         var selectedState: SwitchState by remember { mutableStateOf(SwitchState.CLOSE) }
         val transition = updateTransition(selectedState, label = "switch_transition")
         val selectBarPadding by transition.animateDp(transitionSpec = { tween(1000) }, label = "") {
@@ -4126,18 +4566,24 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     .align(Alignment.Center)
                     .alpha(textAlpha)
             )
-            Box(modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(30.dp)
-                .padding(top = selectBarPadding)
-                .background(Color(0xFF5FB878))
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(30.dp)
+                    .padding(top = selectBarPadding)
+                    .background(Color(0xFF5FB878))
             ) {
-                Row(modifier = Modifier
-                    .align(Alignment.Center)
-                    .alpha(1 - textAlpha)
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .alpha(1 - textAlpha)
                 ) {
-                    Icon(painter = painterResource(id = R.drawable.ic_launcher_background), contentDescription = "star", tint = Color.White)
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_launcher_background),
+                        contentDescription = "star",
+                        tint = Color.White
+                    )
                     Spacer(modifier = Modifier.width(2.dp))
                     Text(
                         text = "已選擇",
@@ -4198,26 +4644,35 @@ class MainActivity : ComponentActivity(), SampleInterface {
         compositionLocalOf { Color.Black }
     }
     var recomposeFlag = "Init"
+
     @Composable
     fun CompositionLocalDemo(isStatic: Boolean = false, colors: Colors, style: TextStyle) {
-        var color by remember{ mutableStateOf(Color.Green) }
+        var color by remember { mutableStateOf(Color.Green) }
         Box(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = compositionLocalName, color = colors.onError, modifier = Modifier.clickable {
-                    color = if (color == Color.Green) {
-                        colors.onError
-                    } else {
-                        Color.Green
-                    }
-                })
-                Spacer (Modifier.height(10.dp))
+                Text(
+                    text = compositionLocalName,
+                    color = colors.onError,
+                    modifier = Modifier.clickable {
+                        color = if (color == Color.Green) {
+                            colors.onError
+                        } else {
+                            Color.Green
+                        }
+                    })
+                Spacer(Modifier.height(10.dp))
                 CompositionLocalProvider(
                     currentLocalColor provides color
                 ) {
                     TaggedBox("Wrapper: $recomposeFlag", 240.dp, Color.Red, style = style) {
-                        TaggedBox("Middle: $recomposeFlag", 180.dp, currentLocalColor.current, style = style) {
+                        TaggedBox(
+                            "Middle: $recomposeFlag",
+                            180.dp,
+                            currentLocalColor.current,
+                            style = style
+                        ) {
                             TaggedBox("Inner: $recomposeFlag", 120.dp, Color.Yellow, style = style)
                         }
                     }
@@ -4228,12 +4683,19 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun TaggedBox(tag:String, size: Dp, background: Color, style: TextStyle, content: @Composable () -> Unit = {}) {
+    fun TaggedBox(
+        tag: String,
+        size: Dp,
+        background: Color,
+        style: TextStyle,
+        content: @Composable () -> Unit = {}
+    ) {
         Column(
             modifier = Modifier
                 .size(size)
                 .background(background),
-            horizontalAlignment = Alignment.CenterHorizontally) {
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(text = tag, style = style)
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -4257,7 +4719,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 .verticalScroll(state)
         ) {
             repeat(10) {
-                Text("Item $it", modifier = Modifier.padding(2.dp), color = colors.onError, style = style)
+                Text(
+                    "Item $it",
+                    modifier = Modifier.padding(2.dp),
+                    color = colors.onError,
+                    style = style
+                )
             }
         }
     }
@@ -4330,12 +4797,14 @@ class MainActivity : ComponentActivity(), SampleInterface {
         var offsetX by remember { mutableStateOf(0f) }
         val boxSideLengthDp = 50.dp
         val boxSildeLengthPx = with(LocalDensity.current) { boxSideLengthDp.toPx() }
-        val draggableState = rememberDraggableState { offsetX = (offsetX + it).coerceIn(0f, 3 * boxSildeLengthPx) }
+        val draggableState =
+            rememberDraggableState { offsetX = (offsetX + it).coerceIn(0f, 3 * boxSildeLengthPx) }
         Box(
             Modifier
                 .height(40.dp)
                 .fillMaxWidth()
-                .background(Color.Black)) {
+                .background(Color.Black)
+        ) {
             Box(
                 Modifier
                     .size(boxSideLengthDp)
@@ -4353,7 +4822,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
         }
     }
 
-    enum class Status{ CLOSE, OPEN }
+    enum class Status { CLOSE, OPEN }
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
@@ -4402,15 +4871,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
         var offset by remember { mutableStateOf(Offset.Zero) }
         var ratationAngle by remember { mutableStateOf(0f) }
         var scale by remember { mutableStateOf(1f) }
-        val transformableState = rememberTransformableState { zoomChange: Float, panChange: Offset, rotationChange: Float ->
-            scale *= zoomChange
-            offset += panChange
-            ratationAngle += rotationChange
-        }
+        val transformableState =
+            rememberTransformableState { zoomChange: Float, panChange: Offset, rotationChange: Float ->
+                scale *= zoomChange
+                offset += panChange
+                ratationAngle += rotationChange
+            }
         Box(
             Modifier
                 .width(55.dp)
-                .height(54.dp), contentAlignment = Alignment.Center) {
+                .height(54.dp), contentAlignment = Alignment.Center
+        ) {
             Box(Modifier
                 .width(55.dp)
                 .height(54.dp)
@@ -4435,10 +4906,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
     fun HorizontalListDemo(colors: Colors, style: TextStyle) {
         val scrollState = rememberScrollState()
         Surface(color = colors.error) {
-            Row(modifier = Modifier
-                .height(40.dp)
-                .width(55.dp)
-                .horizontalScroll(scrollState)) {
+            Row(
+                modifier = Modifier
+                    .height(40.dp)
+                    .width(55.dp)
+                    .horizontalScroll(scrollState)
+            ) {
                 repeat(10) {
                     Text("Horizontal $it ", color = colors.onError, style = style)
                 }
@@ -4448,7 +4921,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun HorizontalListTheme(colors: Colors, style: TextStyle) {
-        BloomTheme{
+        BloomTheme {
             Surface(color = colors.secondaryVariant) {
                 val scrollState = rememberScrollState()
                 Row(
@@ -4471,7 +4944,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
     @Composable
     fun DragGestureDemo(colors: Colors, style: TextStyle) {
         var offset by remember { mutableStateOf(Offset.Zero) }
-        Box(contentAlignment = Alignment.Center,
+        Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .width(55.dp)
                 .height(54.dp)
@@ -4502,7 +4976,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 },
                 contentAlignment = Alignment.Center
             ) {
-                Text("DragGesture", color = colors.onError, style = style, textAlign = TextAlign.Center)
+                Text(
+                    "DragGesture",
+                    color = colors.onError,
+                    style = style,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
@@ -4569,7 +5048,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun ConsumeDemo() {
-        var event : PointerEvent
+        var event: PointerEvent
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -4630,7 +5109,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
     fun BaseDragGestureDemo(colors: Colors, style: TextStyle) {
         val boxSize = 85.dp
         var offset by remember { mutableStateOf(Offset.Zero) }
-        Box(contentAlignment = Alignment.Center,
+        Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier.size(boxSize)
         ) {
             Box(Modifier
@@ -4653,7 +5133,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                 }
             ) {
-                Text("BaseDragGesture", color = colors.onBackground, style = style, textAlign = TextAlign.Center)
+                Text(
+                    "BaseDragGesture",
+                    color = colors.onBackground,
+                    style = style,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
@@ -4689,35 +5174,55 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
             }
         ) {
-            Text("AwaitDragOrCancellation", color = colors.onBackground, style = style, textAlign = TextAlign.Center)
+            Text(
+                "AwaitDragOrCancellation",
+                color = colors.onBackground,
+                style = style,
+                textAlign = TextAlign.Center
+            )
         }
     }
 
     @Composable
     fun Contributors(colors: Colors, style: TextStyle) {
-        Column{
+        Column {
             MemberItem(colors = colors, style = style, R.drawable.ic_dark_logo, text = "dark logo")
             MemberItem(colors = colors, style = style, R.drawable.ic_dark_welcome_bg, "dark bg")
-            MemberItem(colors = colors, style = style, R.drawable.ic_dark_welcome_illos, text = "dark illos")
+            MemberItem(
+                colors = colors,
+                style = style,
+                R.drawable.ic_dark_welcome_illos,
+                text = "dark illos"
+            )
             MemberItem(colors = colors, style = style, R.drawable.ic_light_logo, "light logo")
             MemberItem(colors = colors, style = style, R.drawable.ic_light_welcome_bg, "light bg")
-            MemberItem(colors = colors, style = style, R.drawable.ic_light_welcome_illos, "light illos")
+            MemberItem(
+                colors = colors,
+                style = style,
+                R.drawable.ic_light_welcome_illos,
+                "light illos"
+            )
         }
     }
 
     @Composable
     fun TouchFish(colors: Colors, style: TextStyle) {
-        for(index in 0..10) MemberItem(colors = colors, style = style, androidx.benchmark.R.drawable.logo, text = "logo")
+        for (index in 0..10) MemberItem(
+            colors = colors,
+            style = style,
+            androidx.benchmark.R.drawable.logo,
+            text = "logo"
+        )
     }
 
     @Composable
-    fun MemberItem(colors: Colors, style: TextStyle, imageID: Int, text:String){
+    fun MemberItem(colors: Colors, style: TextStyle, imageID: Int, text: String) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 10.dp, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically
-        ){
+        ) {
             Surface(
                 shape = CircleShape,
                 modifier = Modifier.size(40.dp)
@@ -4731,7 +5236,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 contentAlignment = Alignment.CenterEnd
             ) {
                 IconButton(
-                    onClick = {  }
+                    onClick = { }
                 ) {
                     Icon(Icons.Filled.Email, null, tint = colors.primarySurface)
                 }
@@ -4742,7 +5247,18 @@ class MainActivity : ComponentActivity(), SampleInterface {
     @ExperimentalFoundationApi
     @Composable
     fun ListWithHeader(colors: Colors, style: TextStyle) {
-        val sections = listOf("item 1", "item 2", "item 3", "item 4", "item 5", "item 6", "item 7", "item 8", "item 9", "item 10")
+        val sections = listOf(
+            "item 1",
+            "item 2",
+            "item 3",
+            "item 4",
+            "item 5",
+            "item 6",
+            "item 7",
+            "item 8",
+            "item 9",
+            "item 10"
+        )
         Column(modifier = Modifier.width(125.dp)) {
             TopAppBar(
                 title = {
@@ -4754,7 +5270,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 actions = {
                     IconButton(
-                        onClick = {  }
+                        onClick = { }
                     ) {
                         Icon(Icons.Filled.Search, null)
                     }
@@ -4762,7 +5278,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 backgroundColor = colors.onError
             )
             LazyColumn {
-                sections.forEachIndexed{ index, section ->
+                sections.forEachIndexed { index, section ->
                     stickyHeader {
                         Text(
                             text = section,
@@ -4775,9 +5291,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             style = style
                         )
                     }
-                    when(index){
-                        0 -> item{Contributors(colors, style)}
-                        1 -> item{TouchFish(colors, style)}
+                    when (index) {
+                        0 -> item { Contributors(colors, style) }
+                        1 -> item { TouchFish(colors, style) }
                     }
                 }
             }
@@ -4801,13 +5317,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
             list.forEach {
                 item {
                     GridItem(colors = colors, imageID = it.imageID, text = it.text, style = style)
-                }   
+                }
             }
         }
     }
 
     @Composable
-    fun GridItem(colors: Colors, imageID: Int, text:String, style: TextStyle) {
+    fun GridItem(colors: Colors, imageID: Int, text: String, style: TextStyle) {
         Surface(contentColor = colors.primaryVariant, modifier = Modifier
             .fillMaxSize()
             .clickable {
@@ -4815,7 +5331,12 @@ class MainActivity : ComponentActivity(), SampleInterface {
             }) {
             Box(contentAlignment = Alignment.Center) {
                 Image(painter = painterResource(imageID), contentDescription = null)
-                Text(text = text, style = style, fontWeight = FontWeight.W500, color = colors.onError)
+                Text(
+                    text = text,
+                    style = style,
+                    fontWeight = FontWeight.W500,
+                    color = colors.onError
+                )
             }
         }
     }
@@ -4844,7 +5365,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
     fun HorizontalPager(list: List<MemberItemData>, colors: Colors, style: TextStyle) {
         val state = rememberPagerState(initialPage = 0)
         Column {
-            HorizontalPager(count = list.size, state = state, modifier = Modifier.height(56.dp)) { pager ->
+            HorizontalPager(
+                count = list.size,
+                state = state,
+                modifier = Modifier.height(56.dp)
+            ) { pager ->
                 val item = list[pager]
                 GridItem(colors, item.imageID, item.text, style)
             }
@@ -4882,12 +5407,17 @@ class MainActivity : ComponentActivity(), SampleInterface {
     @Composable
     fun ListItemKey(colors: Colors, style: TextStyle) {
         val list = ArrayList<MemberItemIdData>()
-        for(index in 0..20) {
+        for (index in 0..20) {
             list.add(MemberItemIdData(index, androidx.benchmark.R.drawable.logo, text = "logo"))
         }
         LazyColumn(modifier = Modifier.width(125.dp)) {
             item {
-                Text("List ItemKey", color = colors.onPrimary, modifier = Modifier.padding(4.dp), fontSize = 14.sp)
+                Text(
+                    "List ItemKey",
+                    color = colors.onPrimary,
+                    modifier = Modifier.padding(4.dp),
+                    fontSize = 14.sp
+                )
             }
             items(
                 items = list,
@@ -4901,10 +5431,20 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun ActivityFour(context: Context, coroutineScope: CoroutineScope, colors: Colors, shapes: Shapes, typography: Typography, style: TextStyle, navigation: () -> Unit) {
-        var selectedItem by remember{ mutableStateOf(0) }
+    fun ActivityFour(
+        context: Context,
+        coroutineScope: CoroutineScope,
+        colors: Colors,
+        shapes: Shapes,
+        typography: Typography,
+        style: TextStyle,
+        navigation: () -> Unit
+    ) {
+        var selectedItem by remember { mutableStateOf(0) }
         val toolbarHeight = 200.dp // 定义 ToolBar 的高度
-        val maxUpPx = with(LocalDensity.current) { toolbarHeight.roundToPx().toFloat() - 56.dp.roundToPx().toFloat() } // ToolBar 最大向上位移量 56.dp 参考自 androidx.compose.material AppBar.kt 里面定义的 private val AppBarHeight = 56.dp
+        val maxUpPx = with(LocalDensity.current) {
+            toolbarHeight.roundToPx().toFloat() - 56.dp.roundToPx().toFloat()
+        } // ToolBar 最大向上位移量 56.dp 参考自 androidx.compose.material AppBar.kt 里面定义的 private val AppBarHeight = 56.dp
         val minUpPx = 0f // ToolBar 最小向上位移量
         var toolbarOffsetHeightPx = remember { mutableStateOf(0f) } // 偏移折叠工具栏上移高度
         val nestedScrollConnection = remember {
@@ -4925,10 +5465,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 listState.firstVisibleItemIndex > 0
             }
         }
-        val listTitle = listOf("地方","郵件","電話", "人")
-        val listIcon = listOf(Icons.Filled.Place, Icons.Filled.Email, Icons.Filled.Phone, Icons.Filled.Person)
+        val listTitle = listOf("地方", "郵件", "電話", "人")
+        val listIcon =
+            listOf(Icons.Filled.Place, Icons.Filled.Email, Icons.Filled.Phone, Icons.Filled.Person)
         AnimatedVisibility(visible = showButton) {
-            toolbarOffsetHeightPx = InitFab(coroutineScope = coroutineScope, listState = listState, toolbarOffsetHeightPx = toolbarOffsetHeightPx)
+            toolbarOffsetHeightPx = InitFab(
+                coroutineScope = coroutineScope,
+                listState = listState,
+                toolbarOffsetHeightPx = toolbarOffsetHeightPx
+            )
         }
         Scaffold(
             topBar = {
@@ -4953,12 +5498,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
                         ) { // 列表带有内置的嵌套滚动支持，它将通知我们它的滚动
                             LazyColumn(state = listState) {
                                 items(100) { index ->
-                                    Text("I'm item $index", modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(8.dp, 12.dp)
-                                        .clickable {
+                                    Text(
+                                        "I'm item $index", modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(8.dp, 12.dp)
+                                            .clickable {
 
-                                        },
+                                            },
                                         color = colors.onError
                                     )
                                     Divider(color = colors.onBackground)
@@ -4970,26 +5516,39 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     .distinctUntilChanged()
                                     .filter { it == true }
                                     .collect {
-                                        Toast.makeText(context, "SnapShotFlow", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "SnapShotFlow", Toast.LENGTH_SHORT)
+                                            .show()
                                     }
                             }
                         }
                     }
                 }
             },
-            floatingActionButton = { toolbarOffsetHeightPx = InitFab(coroutineScope = coroutineScope, listState = listState, toolbarOffsetHeightPx = toolbarOffsetHeightPx) },
+            floatingActionButton = {
+                toolbarOffsetHeightPx = InitFab(
+                    coroutineScope = coroutineScope,
+                    listState = listState,
+                    toolbarOffsetHeightPx = toolbarOffsetHeightPx
+                )
+            },
             isFloatingActionButtonDocked = true,
             floatingActionButtonPosition = FabPosition.Center,
             bottomBar = {
                 BottomNavigation {
                     listTitle.forEachIndexed { index, item ->
-                        val setColor = if(selectedItem == index) {
+                        val setColor = if (selectedItem == index) {
                             colors.onError
                         } else {
                             colors.error
                         }
                         BottomNavigationItem(
-                            icon = { Icon(listIcon[index], contentDescription = getString(CONTENT_DESCRIPTION), tint = setColor ) },
+                            icon = {
+                                Icon(
+                                    listIcon[index],
+                                    contentDescription = getString(CONTENT_DESCRIPTION),
+                                    tint = setColor
+                                )
+                            },
                             label = { Text(item, color = setColor) },
                             selected = selectedItem == index,
                             onClick = { selectedItem = index }
@@ -5001,7 +5560,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun InitFab(coroutineScope: CoroutineScope, listState: LazyListState, toolbarOffsetHeightPx: MutableState<Float>): MutableState<Float> {
+    fun InitFab(
+        coroutineScope: CoroutineScope,
+        listState: LazyListState,
+        toolbarOffsetHeightPx: MutableState<Float>
+    ): MutableState<Float> {
         ExtendedFloatingActionButton(
 //            modifier = Modifier.offset(280.dp, 405.dp),
             text = { Text("FAB") },
@@ -5054,7 +5617,15 @@ class MainActivity : ComponentActivity(), SampleInterface {
     }
 
     @Composable
-    fun ActivityFive(context: Context, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
+    fun ActivityFive(
+        context: Context,
+        coroutineScope: CoroutineScope,
+        colors: Colors,
+        style: TextStyle,
+        shapes: Shapes,
+        typography: Typography,
+        navigation: () -> Unit
+    ) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -5065,7 +5636,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     navigation()
                                 }
                             }) {
-                            Icon(tint = colors.onError,
+                            Icon(
+                                tint = colors.onError,
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = getString(CONTENT_DESCRIPTION)
                             )
@@ -5076,7 +5648,8 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
                                 }
                             }) {
-                            Icon(tint = colors.onError,
+                            Icon(
+                                tint = colors.onError,
                                 imageVector = Icons.Default.Home,
                                 contentDescription = getString(CONTENT_DESCRIPTION)
                             )
@@ -5091,7 +5664,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             content = {
                                 IconButton(onClick = {
                                 }) {
-                                    Icon(Icons.Filled.Info, getString(CONTENT_DESCRIPTION), tint = Color.White)
+                                    Icon(
+                                        Icons.Filled.Info,
+                                        getString(CONTENT_DESCRIPTION),
+                                        tint = Color.White
+                                    )
                                 }
                             },
                             onClick = {
@@ -5099,7 +5676,11 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                 }
                             })
                         Spacer(modifier = Modifier.width(4.dp))
-                        Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
+                        Icon(
+                            tint = colors.onError,
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = getString(CONTENT_DESCRIPTION)
+                        )
                         Text(
                             text = "更多",
                             color = colors.onError,
@@ -5114,34 +5695,65 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 BottomNavigationCustom(colors = colors)
             },
         ) {
-            val option = Options()
-            Row {
-                Box(modifier = Modifier
-                    .width(180.dp)
-                    .height(350.dp)) {
-                    InkColorCanvasRule(option)
-                }
-                Box(modifier = Modifier
-                    .width(180.dp)
-                    .height(350.dp)) {
-                    InkColorCanvasIrregular(option)
-                }
-            }
-            Column(modifier = Modifier
-                .padding(it)
-                .padding(8.dp, 12.dp)) {
+            Column {
+                val option = Options()
                 Row {
-                    val size = 50.dp
-                    DrawColorRing(size)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    DrawContent(size)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    DrawBehind(size)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    DrawBorder(size)
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(180.dp)
+                            .height(350.dp)
+                    ) {
+                        InkColorCanvasRule(option)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(180.dp)
+                            .height(350.dp)
+                    ) {
+                        InkColorCanvasIrregular(option)
+                    }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Column(
+                    modifier = Modifier
+                        .padding(it)
+                        .padding(8.dp, 12.dp)
+                ) {
+                    val size = 50.dp
+                    Row {
+                        DrawColorRing(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        DrawContent(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        DrawBehind(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        DrawBorder(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        DrawBasic(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ImageCustomShape(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row {
+                        ImageBackgroundParameter(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ImageBackgroundReverse(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ImageBlur(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ImageBlurClip(size)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ImageCustomPainter(size)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row {
+                        ImageCustom()
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ClockView(getSize = size, hourAngle = 90f, minuteAngle = 360f, secondAngle = 360f)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        MeasureText(size)
+                    }
+                }
             }
         }
     }
@@ -5156,7 +5768,10 @@ class MainActivity : ComponentActivity(), SampleInterface {
             val ringWidth = 5.dp
             Canvas(modifier = Modifier.size(radius)) {
                 this.drawCircle( // 画圆
-                    brush = Brush.sweepGradient(listOf(Color.Red, Color.Green, Color.Red), Offset(radius.toPx() / 2f, radius.toPx() / 2f)),
+                    brush = Brush.sweepGradient(
+                        listOf(Color.Red, Color.Green, Color.Red),
+                        Offset(radius.toPx() / 2f, radius.toPx() / 2f)
+                    ),
                     radius = radius.toPx() / 2f,
                     style = Stroke(
                         width = ringWidth.toPx()
@@ -5173,8 +5788,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
             contentAlignment = Alignment.Center
         ) {
             Card(
-                shape = RoundedCornerShape(8.dp)
-                ,modifier = Modifier
+                shape = RoundedCornerShape(8.dp), modifier = Modifier
                     .fillMaxSize()
                     .drawWithContent {
                         drawContent()
@@ -5197,8 +5811,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
             contentAlignment = Alignment.Center
         ) {
             Card(
-                shape = RoundedCornerShape(8.dp)
-                ,modifier = Modifier
+                shape = RoundedCornerShape(8.dp), modifier = Modifier
                     .fillMaxSize()
                     .drawBehind {
                         drawCircle(
@@ -5249,506 +5862,793 @@ class MainActivity : ComponentActivity(), SampleInterface {
                             }
                         }
                 ) {
-                    Image(painter = painterResource(id = R.drawable.logo), contentDescription = "Diana", modifier = Modifier.clickable {
-                        borderColor = when(borderColor) {
-                            Color.Red -> {
-                                Color.Yellow
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
+                        contentDescription = "Diana",
+                        modifier = Modifier.clickable {
+                            borderColor = when (borderColor) {
+                                Color.Red -> {
+                                    Color.Yellow
+                                }
+                                else -> {
+                                    Color.Red
+                                }
                             }
-                            else -> {
-                                Color.Red
-                            }
-                        }
-                    })
+                        })
                 }
             }
         }
     }
 
     @Composable
-    fun InkColorCanvas(option: Options) {
-        val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
-        val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
-        val animal = remember { Animatable(0.0f) }
-        var xbLength = 0.0f
-        Canvas(
+    fun DrawBasic(getSize: Dp) {
+        Canvas(modifier = Modifier.size(getSize)) {
+            drawLine(
+                start = Offset(x = size.width, y = 0f),
+                end = Offset(x = 0f, y = size.height),
+                color = Color.Blue,
+                strokeWidth = 5F
+            )
+            drawLine(
+                start = Offset(x = 0f, y = size.height),
+                end = Offset(x = size.width, y = 0f),
+                color = Color.Blue,
+                strokeWidth = 5F
+            )
+            drawCircle(
+                color = Color.Blue,
+                center = Offset(x = size.width / 2, y = size.height / 2),
+                radius = size.minDimension / 4
+            )
+            val insetSize = Size(25f, 25f)
+            inset(horizontal = 40f, vertical = 20f) {
+                drawRect(color = Color.Green, size = insetSize)
+            }
+            withTransform({
+                translate(left = size.width / 5F)
+                rotate(degrees = 45F)
+            }) {
+                drawRect(
+                    color = Color.Gray,
+                    topLeft = Offset(x = size.width / 2.5F, y = size.height / 2.5F),
+                    size = size / 2.5F
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun ImageCustomShape(size: Dp) {
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = getString(CONTENT_DESCRIPTION),
+            contentScale = ContentScale.Crop,
+            colorFilter = ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) }),
             modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    coroutineScope {
-                        while (true) {
-                            val offset = awaitPointerEventScope {
-                                awaitFirstDown().position
-                            }
-                            launch {
-                                animal.animateTo(
-                                    xbLength,
-                                    animationSpec = spring(stiffness = Spring.DampingRatioLowBouncy)
-                                )
-                            }
-
-                        }
-                    }
-                }
-        ) {
-            drawIntoCanvas { canva ->
-                val multiColorBitmpa = Bitmap.createScaledBitmap(
-                    imageBitmap,
-                    size.width.toInt(),
-                    size.height.toInt(), false
-                )
-                val blackColorBitmpa = Bitmap.createScaledBitmap(
-                    imageBitmapDefault,
-                    size.width.toInt(),
-                    size.height.toInt(),
-                    false
-                )
-                val paint = Paint().asFrameworkPaint()
-                canva.nativeCanvas.drawBitmap(multiColorBitmpa, 0f, 0f, paint) //绘制图片
-                //保存图层
-                val layerId: Int = canva.nativeCanvas.saveLayer(
-                    0f,
-                    0f,
-                    size.width,
-                    size.height,
-                    paint,
-                )
-                canva.nativeCanvas.drawBitmap(blackColorBitmpa, 0f, 0f, paint)
-                //PorterDuffXfermode 设置画笔的图形混合模式
-                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-                //画圆
-                canva.nativeCanvas.drawCircle(
-                    size.width / 2,
-                    size.height / 2,
-                    animal.value,
-                    paint
-                )
-                //画布斜边
-                xbLength = kotlin.math.sqrt(size.width.toDouble().pow(2.0) + size.height.toDouble().pow(2)).toFloat()
-                paint.xfermode = null
-                canva.nativeCanvas.restoreToCount(layerId)
-            }
-        }
-    }
-
-    @Composable
-    fun InkColorCanvasRule(option: Options) {
-        val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
-        val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
-        val screenOffset = remember { mutableStateOf(Offset(0f, 0f)) }
-        val animalState = remember { mutableStateOf(false) }
-        val animal: Float by animateFloatAsState(
-            if (animalState.value) {
-                1f
-            } else {
-                0f
-            }, animationSpec = TweenSpec(durationMillis = 4000)
+                .size(size)
+                .clip(SquashedOval())
         )
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    coroutineScope {
-                        while (true) {
-                            val position = awaitPointerEventScope {
-                                awaitFirstDown().position
-                            }
-                            launch {
-                                screenOffset.value = Offset(position.x, position.y)
-                                animalState.value = !animalState.value
-                            }
+    }
 
-                        }
-                    }
-                }
-        ) {
-            drawIntoCanvas { canvas ->
-                val multiColorBitmap = Bitmap.createScaledBitmap(
-                    imageBitmap,
-                    size.width.toInt(),
-                    size.height.toInt(),
-                    false
+    @Composable
+    fun ImageCustom() {
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = getString(CONTENT_DESCRIPTION),
+            contentScale = ContentScale.Crop,
+            colorFilter = ColorFilter.tint(Color.Green, blendMode = BlendMode.Darken),
+            modifier = Modifier.aspectRatio(16f / 9f)
+        )
+    }
+
+    @Composable
+    fun ImageBackgroundParameter(size: Dp) {
+        val contrast = 2f// 0f..10f (1 should be default)
+        val brightness = -180f // -255f..255f (0 should be default)
+        val colorMatrix = floatArrayOf(
+            contrast, 0f, 0f, 0f, brightness,
+            0f, contrast, 0f, 0f, brightness,
+            0f, 0f, contrast, 0f, brightness,
+            0f, 0f, 0f, 1f, 0f
+        )
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = getString(CONTENT_DESCRIPTION),
+            colorFilter = ColorFilter.colorMatrix(
+                androidx.compose.ui.graphics.ColorMatrix(
+                    colorMatrix
                 )
-                val blackColorBitmap = Bitmap.createScaledBitmap(
-                    imageBitmapDefault,
-                    size.width.toInt(),
-                    size.height.toInt(),
-                    false
+            ),
+            modifier = Modifier.size(size)
+        )
+    }
+
+    @Composable
+    fun ImageBackgroundReverse(size: Dp) {
+        val colorMatrix = floatArrayOf(
+            -1f, 0f, 0f, 0f, 255f,
+            0f, -1f, 0f, 0f, 255f,
+            0f, 0f, -1f, 0f, 255f,
+            0f, 0f, 0f, 1f, 0f
+        )
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = getString(CONTENT_DESCRIPTION),
+            colorFilter = ColorFilter.colorMatrix(
+                androidx.compose.ui.graphics.ColorMatrix(
+                    colorMatrix
                 )
-                val paint = Paint().asFrameworkPaint()
-                canvas.nativeCanvas.drawBitmap(multiColorBitmap, 0f, 0f, paint) //绘制图片
-                //保存图层
-                val layerId: Int = canvas.nativeCanvas.saveLayer(
-                    0f,
-                    0f,
-                    size.width,
-                    size.height,
-                    paint,
+            ),
+            modifier = Modifier.size(size)
+        )
+    }
+
+    @Composable
+    fun ImageBlur(size: Dp) {
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = getString(CONTENT_DESCRIPTION),
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(size)
+                .blur(
+                    radiusX = 10.dp,
+                    radiusY = 10.dp,
+                    edgeTreatment = BlurredEdgeTreatment(RoundedCornerShape(8.dp))
                 )
-                //当前图层也是顶层图层绘制黑白Btmap
-                canvas.nativeCanvas.drawBitmap(blackColorBitmap, 0f, 0f, paint)
-                //PorterDuffXfermode 设置画笔的图形混合模式
-                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-                val xbLength = kotlin.math.sqrt(size.width.toDouble().pow(2.0) + size.height.toDouble().pow(2)).toFloat()*animal
-                //画圆
-                canvas.nativeCanvas.drawCircle(
-                    screenOffset.value.x,
-                    screenOffset.value.y,
-                    xbLength,
-                    paint
+        )
+    }
+
+    @Composable
+    fun ImageBlurClip(size: Dp) {
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = getString(CONTENT_DESCRIPTION),
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(size)
+                .blur(
+                    radiusX = 10.dp,
+                    radiusY = 10.dp,
+                    edgeTreatment = BlurredEdgeTreatment.Unbounded
                 )
-                //画布斜边
-                paint.xfermode = null
-                canvas.nativeCanvas.restoreToCount(layerId)
+                .clip(RoundedCornerShape(8.dp))
+        )
+    }
+
+    @Composable
+    fun ImageCustomPainter(size: Dp) {
+        val rainbowImage =
+            BitmapFactory.decodeResource(resources, R.drawable.desert_chic).asImageBitmap()
+        val dogImage = ImageBitmap.imageResource(R.drawable.logo)
+        val customPainter = OverlayImagePainter(dogImage, rainbowImage)
+        Row {
+            Image(
+                painter = customPainter,
+                contentDescription = getString(CONTENT_DESCRIPTION),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(size)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .background(color = Color.Gray)
+                    .size(size)
+                    .padding(10.dp)
+                    .background(color = Color.Yellow)
+                    .paint(customPainter)
+            ) {
+
             }
         }
     }
 
     @Composable
-    fun InkColorCanvasIrregular(option: Options) {
-        val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
-        val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
-        val scrrenOffset = remember { mutableStateOf(Offset(0f, 0f)) }
-        val animalState = remember { mutableStateOf(false) }
-        val animal: Float by animateFloatAsState(
-            if (animalState.value) {
-                1f
-            } else {
-                0f
-            }, animationSpec = TweenSpec(durationMillis = 6000)
-        )
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    coroutineScope {
-                        while (true) {
-                            val position = awaitPointerEventScope {
-                                awaitFirstDown().position
-                            }
-                            launch {
-                                scrrenOffset.value = Offset(position.x, position.y)
-                                animalState.value = !animalState.value
-                            }
+    fun ClockView(
+        getSize: Dp,
+        hourAngle: Float,
+        minuteAngle: Float,
+        secondAngle: Float,
+        modifier: Modifier = Modifier,
+        textColor: Color = MaterialTheme.colors.onSurface,
+        hourHandColor: Color = MaterialTheme.colors.onSurface,
+        minuteHandColor: Color = MaterialTheme.colors.onSurface,
+        secondHandColor: Color = MaterialTheme.colors.onSurface
+    ) {
+        Canvas(modifier = modifier.size(getSize)) { //外圆圈
+            drawCircle(color = textColor, style = Stroke(2.dp.toPx())) // 小时刻度
+            val lineOuterR = (size.minDimension / 2.0f).minus(6.dp.toPx())
+            val lineInnerR = (size.minDimension / 2.0f).minus(18.dp.toPx())
+            for (i in 0..11) {
+                val xRad = cos(30.0 * i * Math.PI / 180F)
+                val yRad = sin(30.0 * i * Math.PI / 180F)
+                drawLine(
+                    color = textColor,
+                    start = Offset(
+                        (center.x + (lineInnerR * xRad)).toFloat(),
+                        (center.y + (lineInnerR * yRad)).toFloat()
+                    ),
+                    end = Offset(
+                        (center.x + (lineOuterR * xRad)).toFloat(),
+                        (center.y + (lineOuterR * yRad)).toFloat()
+                    ),
+                    strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round,
+                )
+            } // 内圆圈 
+            val rInnerCircle = (size.minDimension / 2.0f).minus(22.dp.toPx())
+            drawCircle(
+                color = textColor,
+                radius = rInnerCircle,
+                style = Stroke(1.dp.toPx())
+            ) // 中心小圆点 
+            drawCircle(color = textColor, radius = 4.dp.toPx()) // 时针 
+            val xRadHour = cos(hourAngle * Math.PI / 180F)
+            val yRadHour = sin(hourAngle * Math.PI / 180F)
+            val rHour = rInnerCircle.times(3).div(4)
+            drawLine(
+                color = hourHandColor,
+                start = Offset(center.x, center.y),
+                end = Offset(
+                    (center.x + (rHour * xRadHour)).toFloat(),
+                    (center.y + (rHour * yRadHour)).toFloat()
+                ),
+                strokeWidth = 3.dp.toPx(),
+                cap = StrokeCap.Round
+            ) // 分针 
+            val xRadMinute = cos(minuteAngle * Math.PI / 180F)
+            val yRadMinute = sin(minuteAngle * Math.PI / 180F)
+            val rMinute = rInnerCircle.minus(2.dp.toPx())
+            drawLine(
+                color = minuteHandColor,
+                start = Offset(center.x, center.y),
+                end = Offset(
+                    (center.x + (rMinute * xRadMinute)).toFloat(),
+                    (center.y + (rMinute * yRadMinute)).toFloat()
+                ),
+                strokeWidth = 2.dp.toPx(),
+                cap = StrokeCap.Round
+            ) // 秒针 
+            val xRadSecond = cos(secondAngle * Math.PI / 180F)
+            val yRadSecond = sin(secondAngle * Math.PI / 180F)
+            val rSecond = lineOuterR.minus(2.dp.toPx())
+            drawLine(
+                color = secondHandColor,
+                start = Offset(center.x, center.y),
+                end = Offset(
+                    (center.x + (rSecond * xRadSecond)).toFloat(),
+                    (center.y + (rSecond * yRadSecond)).toFloat()
+                ),
+                strokeWidth = 1.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+        }
+    }
 
-                        }
+    @OptIn(ExperimentalTextApi::class)
+    @Composable
+    fun MeasureText(getSize: Dp) {
+        val textMeasurer = rememberTextMeasurer()
+        Spacer(
+            modifier = Modifier
+                .drawWithCache {
+                    val measuredText =
+                        textMeasurer.measure(
+                            AnnotatedString("Measure\nText"),
+                            constraints = Constraints.fixedWidth((size.width * 2f / 3f).toInt()),
+                            style = TextStyle(fontSize = 14.sp)
+                        )
+
+                    onDrawBehind {
+                        drawRect(Color.Magenta, size = measuredText.size.toSize())
+                        drawText(measuredText)
                     }
                 }
-        ) {
-            drawIntoCanvas { canva ->
-                val multiColorBitmpa = Bitmap.createScaledBitmap(
-                    imageBitmap,
-                    size.width.toInt(),
-                    size.height.toInt(), false
+                .size(getSize)
+        )
+    }
+
+            @Composable
+            fun InkColorCanvas(option: Options) {
+                val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
+                val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
+                val animal = remember { Animatable(0.0f) }
+                var xbLength = 0.0f
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            coroutineScope {
+                                while (true) {
+                                    val offset = awaitPointerEventScope {
+                                        awaitFirstDown().position
+                                    }
+                                    launch {
+                                        animal.animateTo(
+                                            xbLength,
+                                            animationSpec = spring(stiffness = Spring.DampingRatioLowBouncy)
+                                        )
+                                    }
+
+                                }
+                            }
+                        }
+                ) {
+                    drawIntoCanvas { canva ->
+                        val multiColorBitmpa = Bitmap.createScaledBitmap(
+                            imageBitmap,
+                            size.width.toInt(),
+                            size.height.toInt(), false
+                        )
+                        val blackColorBitmpa = Bitmap.createScaledBitmap(
+                            imageBitmapDefault,
+                            size.width.toInt(),
+                            size.height.toInt(),
+                            false
+                        )
+                        val paint = Paint().asFrameworkPaint()
+                        canva.nativeCanvas.drawBitmap(multiColorBitmpa, 0f, 0f, paint) //绘制图片
+                        //保存图层
+                        val layerId: Int = canva.nativeCanvas.saveLayer(
+                            0f,
+                            0f,
+                            size.width,
+                            size.height,
+                            paint,
+                        )
+                        canva.nativeCanvas.drawBitmap(blackColorBitmpa, 0f, 0f, paint)
+                        //PorterDuffXfermode 设置画笔的图形混合模式
+                        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                        //画圆
+                        canva.nativeCanvas.drawCircle(
+                            size.width / 2,
+                            size.height / 2,
+                            animal.value,
+                            paint
+                        )
+                        //画布斜边
+                        xbLength = kotlin.math.sqrt(size.width.toDouble().pow(2.0) + size.height.toDouble().pow(2)).toFloat()
+                        paint.xfermode = null
+                        canva.nativeCanvas.restoreToCount(layerId)
+                    }
+                }
+            }
+
+            @Composable
+            fun InkColorCanvasRule(option: Options) {
+                val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
+                val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
+                val screenOffset = remember { mutableStateOf(Offset(0f, 0f)) }
+                val animalState = remember { mutableStateOf(false) }
+                val animal: Float by animateFloatAsState(
+                    if (animalState.value) {
+                        1f
+                    } else {
+                        0f
+                    }, animationSpec = TweenSpec(durationMillis = 4000)
                 )
-                val blackColorBitmpa = Bitmap.createScaledBitmap(
-                    imageBitmapDefault,
-                    size.width.toInt(),
-                    size.height.toInt(),
-                    false
+
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            coroutineScope {
+                                while (true) {
+                                    val position = awaitPointerEventScope {
+                                        awaitFirstDown().position
+                                    }
+                                    launch {
+                                        screenOffset.value = Offset(position.x, position.y)
+                                        animalState.value = !animalState.value
+                                    }
+
+                                }
+                            }
+                        }
+                ) {
+                    drawIntoCanvas { canvas ->
+                        val multiColorBitmap = Bitmap.createScaledBitmap(
+                            imageBitmap,
+                            size.width.toInt(),
+                            size.height.toInt(),
+                            false
+                        )
+                        val blackColorBitmap = Bitmap.createScaledBitmap(
+                            imageBitmapDefault,
+                            size.width.toInt(),
+                            size.height.toInt(),
+                            false
+                        )
+                        val paint = Paint().asFrameworkPaint()
+                        canvas.nativeCanvas.drawBitmap(multiColorBitmap, 0f, 0f, paint) //绘制图片
+                        //保存图层
+                        val layerId: Int = canvas.nativeCanvas.saveLayer(
+                            0f,
+                            0f,
+                            size.width,
+                            size.height,
+                            paint,
+                        )
+                        //当前图层也是顶层图层绘制黑白Btmap
+                        canvas.nativeCanvas.drawBitmap(blackColorBitmap, 0f, 0f, paint)
+                        //PorterDuffXfermode 设置画笔的图形混合模式
+                        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                        val xbLength = kotlin.math.sqrt(size.width.toDouble().pow(2.0) + size.height.toDouble().pow(2)).toFloat()*animal
+                        //画圆
+                        canvas.nativeCanvas.drawCircle(
+                            screenOffset.value.x,
+                            screenOffset.value.y,
+                            xbLength,
+                            paint
+                        )
+                        //画布斜边
+                        paint.xfermode = null
+                        canvas.nativeCanvas.restoreToCount(layerId)
+                    }
+                }
+            }
+
+            @Composable
+            fun InkColorCanvasIrregular(option: Options) {
+                val imageBitmap = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical, option)
+                val imageBitmapDefault = BitmapFactory.decodeResource(resources, R.drawable.giant_bg_vertical_finish, option)
+                val scrrenOffset = remember { mutableStateOf(Offset(0f, 0f)) }
+                val animalState = remember { mutableStateOf(false) }
+                val animal: Float by animateFloatAsState(
+                    if (animalState.value) {
+                        1f
+                    } else {
+                        0f
+                    }, animationSpec = TweenSpec(durationMillis = 6000)
                 )
-                val paint = Paint().asFrameworkPaint()
-                canva.nativeCanvas.drawBitmap(multiColorBitmpa, 0f, 0f, paint) //绘制图片
-                //保存图层
-                val layerId: Int = canva.nativeCanvas.saveLayer(
-                    0f,
-                    0f,
-                    size.width,
-                    size.height,
-                    paint,
-                )
-                canva.nativeCanvas.drawBitmap(blackColorBitmpa, 0f, 0f, paint)
-                //PorterDuffXfermode 设置画笔的图形混合模式
-                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-                val xbLength = kotlin.math.sqrt(size.width.toDouble().pow(2.0) + size.height.toDouble().pow(2)).toFloat() * animal
-                //画圆
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            coroutineScope {
+                                while (true) {
+                                    val position = awaitPointerEventScope {
+                                        awaitFirstDown().position
+                                    }
+                                    launch {
+                                        scrrenOffset.value = Offset(position.x, position.y)
+                                        animalState.value = !animalState.value
+                                    }
+
+                                }
+                            }
+                        }
+                ) {
+                    drawIntoCanvas { canva ->
+                        val multiColorBitmpa = Bitmap.createScaledBitmap(
+                            imageBitmap,
+                            size.width.toInt(),
+                            size.height.toInt(), false
+                        )
+                        val blackColorBitmpa = Bitmap.createScaledBitmap(
+                            imageBitmapDefault,
+                            size.width.toInt(),
+                            size.height.toInt(),
+                            false
+                        )
+                        val paint = Paint().asFrameworkPaint()
+                        canva.nativeCanvas.drawBitmap(multiColorBitmpa, 0f, 0f, paint) //绘制图片
+                        //保存图层
+                        val layerId: Int = canva.nativeCanvas.saveLayer(
+                            0f,
+                            0f,
+                            size.width,
+                            size.height,
+                            paint,
+                        )
+                        canva.nativeCanvas.drawBitmap(blackColorBitmpa, 0f, 0f, paint)
+                        //PorterDuffXfermode 设置画笔的图形混合模式
+                        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                        val xbLength = kotlin.math.sqrt(size.width.toDouble().pow(2.0) + size.height.toDouble().pow(2)).toFloat() * animal
+                        //画圆
 //            canva.nativeCanvas.drawCircle(
 //                scrrenOffset.value.x,
 //                scrrenOffset.value.y,
 //                xbLength,
 //                paint
 //            )
-                val path = Path().asAndroidPath()
-                path.moveTo(scrrenOffset.value.x, scrrenOffset.value.y)
-                //随便绘制了哥区域。当然了为了好看曲线可以更美。
-                if (xbLength>0) {
-                    path.addOval(
-                        RectF(
-                            scrrenOffset.value.x - xbLength,
-                            scrrenOffset.value.y - xbLength,
-                            scrrenOffset.value.x + 100f + xbLength,
-                            scrrenOffset.value.y + 130f + xbLength
-                        ), android.graphics.Path.Direction.CCW
-                    )
-                    path.addCircle(
-                        scrrenOffset.value.x, scrrenOffset.value.y, 100f + xbLength,
-                        android.graphics.Path.Direction.CCW
-                    )
-                    path.addCircle(
-                        scrrenOffset.value.x-100, scrrenOffset.value.y-100, 50f + xbLength,
-                        android.graphics.Path.Direction.CCW
-                    )
-                }
-                path.close()
-                canva.nativeCanvas.drawPath(path, paint)
-                //画布斜边
-                paint.xfermode = null
-                canva.nativeCanvas.restoreToCount(layerId)
-            }
-        }
-    }
-
-    @OptIn(InternalComposeApi::class)
-    @Composable
-    fun BottomNavigationCustom(colors: Colors) {
-        val viewModel = AnimationViewModel()
-        val listStateColor by remember { mutableStateOf(arrayListOf(colors.error, colors.onError, colors.onError, colors.onError)) }
-        val listTitle = listOf("主頁","資訊","喜歡", "設置")
-        val listIcon = listOf(Icons.Filled.Home, Icons.Filled.Info, Icons.Filled.Favorite, Icons.Filled.Settings)
-        val applyContext = currentComposer.applyCoroutineContext
-        val clickTrue = remember { mutableStateOf(false) }
-        val mCurAnimValueColor = remember { Animatable(1f) }
-        val animalBooleanState: Float by animateFloatAsState(
-            if (viewModel.animalBoolean.value) {
-                0f
-            } else {
-                1f
-            }, animationSpec = TweenSpec(durationMillis = 600),
-            finishedListener = {
-                if (it >= 0.9f && clickTrue.value){
-                    viewModel.animalBoolean.value = !viewModel.animalBoolean.value
-                }
-            }
-        )
-        val stiffness = 100f
-        val animalScaleCanvasWidthValue: Float by animateFloatAsState(
-            if (!clickTrue.value) {
-                0f
-            } else {
-                30f
-            },
-            animationSpec = SpringSpec(stiffness = stiffness),
-        )
-        val animalScaleCanvasHeightValue: Float by animateFloatAsState(
-            if (!clickTrue.value) {
-                0f
-            } else {
-                30f
-            },
-            animationSpec = SpringSpec(stiffness = stiffness),
-        )
-        val mCurAnimalHeight: Float by animateFloatAsState(
-            if (!clickTrue.value) {
-                -30f
-            } else {
-                30f
-            },
-            animationSpec = SpringSpec(stiffness = stiffness),
-        )
-        val mCurAnimValueY: Float by animateFloatAsState(
-            if (!clickTrue.value) {
-                0f
-            } else {
-                1f
-            }, animationSpec = SpringSpec(stiffness = stiffness),
-            finishedListener = {
-                if (it >= 0.9f && clickTrue.value) {
-                    CoroutineScope(applyContext).launch {
-                        mCurAnimValueColor.animateTo(
-                            0f,
-                            animationSpec = SpringSpec(stiffness = stiffness)
-                        )
-                    }
-                }
-                if (it <= 0.01f && !clickTrue.value) {
-                    CoroutineScope(applyContext).launch {
-                        mCurAnimValueColor.animateTo(
-                            1f,
-                            animationSpec = SpringSpec(stiffness = stiffness)
-                        )
-                    }
-                }
-                //动画结束->回归原来位置
-                if (it > 0.9f && clickTrue.value) {
-                    clickTrue.value = !clickTrue.value
-                }
-            }
-            //TweenSpec(durationMillis = 1600)
-            // DurationBasedAnimationSpec, FloatSpringSpec, FloatTweenSpec, KeyframesSpec, RepeatableSpec, SnapSpec, SpringSpec, TweenSpec
-        )
-        //半径的决定动画
-        val mCurAnimValue: Float by animateFloatAsState(
-            if (clickTrue.value) {
-                0f
-            } else {
-                1f
-            }, animationSpec = SpringSpec(dampingRatio = 1f, stiffness = 30f)
-        )
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)) {
-                Canvas(modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight()) {
-                    drawIntoCanvas { canvas ->
-                        //绘制底部曲线到底部
-                        canvas.translate(0f, size.height)
-                        canvas.scale(1f, -1f)
-                        val paint = Paint()
-                        paint.strokeWidth = 2f
-                        paint.style = PaintingStyle.Fill
-                        paint.color = Color(245, 215, 254, 255)
-
-                        val height = 276f
-                        val cicleHeight = height / 3
-                        val ScaleHeight = animalScaleCanvasHeightValue
-                        val ScaleWidth = animalScaleCanvasWidthValue
-                        //控制脖子左边,一直在变化
-                        val path = Path()
-                        path.moveTo(0f + ScaleWidth, 0f)
-                        path.lineTo(0f + ScaleWidth, height - cicleHeight + ScaleHeight)
-                        path.quadraticBezierTo(
-                            0f + ScaleWidth,
-                            height + ScaleHeight,
-                            cicleHeight,
-                            height + ScaleHeight
-                        )
-
-                        //第一个左弧度
-                        path.lineTo(size.width - cicleHeight - ScaleWidth, height + ScaleHeight)
-                        path.quadraticBezierTo(
-                            size.width - ScaleWidth,
-                            height + ScaleHeight,
-                            size.width - ScaleWidth,
-                            height - cicleHeight + ScaleHeight
-                        )
-                        path.lineTo(size.width - ScaleWidth, 0f)
+                        val path = Path().asAndroidPath()
+                        path.moveTo(scrrenOffset.value.x, scrrenOffset.value.y)
+                        //随便绘制了哥区域。当然了为了好看曲线可以更美。
+                        if (xbLength>0) {
+                            path.addOval(
+                                RectF(
+                                    scrrenOffset.value.x - xbLength,
+                                    scrrenOffset.value.y - xbLength,
+                                    scrrenOffset.value.x + 100f + xbLength,
+                                    scrrenOffset.value.y + 130f + xbLength
+                                ), android.graphics.Path.Direction.CCW
+                            )
+                            path.addCircle(
+                                scrrenOffset.value.x, scrrenOffset.value.y, 100f + xbLength,
+                                android.graphics.Path.Direction.CCW
+                            )
+                            path.addCircle(
+                                scrrenOffset.value.x-100, scrrenOffset.value.y-100, 50f + xbLength,
+                                android.graphics.Path.Direction.CCW
+                            )
+                        }
                         path.close()
-                        canvas.drawPath(path, paint)
-//--------------------------------------------------------------------------
-                        canvas.save()
-                        //中间凸起部分
-                        val centerHdX = size.width / 3 / 2 + size.width / 3 * viewModel.position.value!!
-                        //这里坐标系位置圆点就为上边线中点
-                        canvas.translate(centerHdX, height)
-                        val R = 30f
-                        //0-50是变大部分
-                        val RH = mCurAnimalHeight
-                        //50到-50是变为平
-                        val p0 = Offset(-R, 0f + RH + animalScaleCanvasHeightValue)
-                        val p1 = Offset(-R, R + RH + animalScaleCanvasHeightValue)
-                        val p3 = Offset(0f, 2 * R - 30f + RH + animalScaleCanvasHeightValue)
-                        val p5 = Offset(R, R + RH + animalScaleCanvasHeightValue)
-                        val p6 = Offset(R, 0f + RH + animalScaleCanvasHeightValue)
-                        val p7 = Offset(100f, -10f + animalScaleCanvasHeightValue)
-
-                        val pathCub = Path()
-                        pathCub.moveTo(-100f, 0f + animalScaleCanvasHeightValue)
-                        pathCub.cubicTo(p0.x, p0.y, p1.x, p1.y, p3.x, p3.y)
-                        pathCub.cubicTo(p5.x, p5.y, p6.x, p6.y, p7.x, p7.y)
-
-                        canvas.drawPath(pathCub, paint)
-
-                        //中间凸起部分落下
-                        canvas.restore()
-
-//--------------------------------------------------------------------------
-
-                        //绘制弹性圆球
-                        //假设点击的是index=0一共三个底部按钮
-                        canvas.save()
-                        //1,2,3
-                        //将坐标系移动到点击部位()这样写起来比较爽好理解。将点击部位作为我们的坐标系园点
-                        val centerX = size.width / 3 / 2 + size.width / 3 * viewModel.position.value!!
-                        Log.e("圆点", "LoginPage: $centerX")
-                        canvas.translate(centerX, height * 2 / 3.2f)
-                        //canvas.drawCircle(Offset(0f, 0f), 100f, paint)
-                        //这里我们清楚坐标圆点之后我们进行绘制我们的圆
-                        val r = 100f - 50 * (1 - mCurAnimValue)
-                        //圆的坐标和中心点的坐标计算
-                        //1.首先 原点为(0f,0f)且半径r=100f--->那么p6(0f,r),p5=(r/2,r),p4(r,r/2),p3(r,0f)
-                        //2.第二象限里面 p2(r,-r/2),p1(r/2,-r),p0(0f,r)
-                        //3.第三象限里面 p11(-r/2,-r),p10(-r,-r/2),p9(-r,0f)
-                        //4.第四象限里面 p8(-r,r/2),p7(r/2,r),p6(0f,r)
-                        Log.e("mCurAnimValueY", "LoginPage=: $mCurAnimValueY")
-                        val moveTopHeight = mCurAnimValueY * 250f
-                        val P0 = Offset(0f, -r + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P1 = Offset(r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P2 = Offset(r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P3 = Offset(r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P4 = Offset(r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P5 = Offset(r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P6 = Offset(0f, r + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P7 = Offset(-r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P8 = Offset(-r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P9 = Offset(-r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P10 = Offset(-r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
-                        val P11 = Offset(-r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
-
-                        val heightController = 180f
-                        val pathReult = Path()
-                        pathReult.moveTo(P0.x, P0.y - heightController * mCurAnimValue)
-                        //p1->p2->p3
-                        pathReult.cubicTo(
-                            P1.x,
-                            P1.y - 30 * mCurAnimValue,
-                            P2.x,
-                            P2.y - 30 * mCurAnimValue,
-                            P3.x,
-                            P3.y
-                        )
-                        //p4->p5->p6
-                        pathReult.cubicTo(P4.x, P4.y, P5.x, P5.y, P6.x, P6.y)
-                        //p7->p8->p9
-                        pathReult.cubicTo(P7.x, P7.y, P8.x, P8.y, P9.x, P9.y)
-                        //p10->p11->p0
-                        pathReult.cubicTo(
-                            P10.x,
-                            P10.y - 30 * mCurAnimValue,
-                            P11.x,
-                            P11.y - 30 * mCurAnimValue,
-                            P0.x,
-                            P0.y - heightController * mCurAnimValue
-                        )
-                        pathReult.close()
-                        paint.color = Color(245, 215, 254, mCurAnimValueColor.value.toInt() * 255)
-                        //canvas.drawPath(pathReult, paint)
-                }
-            }
-            LazyRow(modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.Bottom) {
-                items(listTitle.size) {index ->
-                    Column( // Material 庫中的圖標，有 Filled, Outlined, Rounded, Sharp, Two Tone 等
-//                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .setModifiers(viewModel.position.value, index, animalBooleanState)
-                            .clickable {
-                                viewModel.positionChanged(index)
-                                clickTrue.value = !clickTrue.value
-                                viewModel.animalBoolean.value = !viewModel.animalBoolean.value
-                                for (i in 0 until listStateColor.size) {
-                                    if (i == viewModel.position.value) {
-                                        listStateColor[i] = colors.error
-                                    } else {
-                                        listStateColor[i] = colors.onError
-                                    }
-                                }
-                            }) {
-                        Icon(
-                            listIcon[index],
-                            tint = listStateColor[index],
-                            contentDescription = getString(CONTENT_DESCRIPTION),
-                            modifier = Modifier
-                                .size(36.dp)
-                                .setModifiers(viewModel.position.value, index, animalBooleanState)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(listTitle[index], color = listStateColor[index])
+                        canva.nativeCanvas.drawPath(path, paint)
+                        //画布斜边
+                        paint.xfermode = null
+                        canva.nativeCanvas.restoreToCount(layerId)
                     }
                 }
             }
-        }
-    }
+
+            @OptIn(InternalComposeApi::class)
+            @Composable
+            fun BottomNavigationCustom(colors: Colors) {
+                val viewModel = AnimationViewModel()
+                val listStateColor by remember { mutableStateOf(arrayListOf(colors.error, colors.onError, colors.onError, colors.onError)) }
+                val listTitle = listOf("主頁","資訊","喜歡", "設置")
+                val listIcon = listOf(Icons.Filled.Home, Icons.Filled.Info, Icons.Filled.Favorite, Icons.Filled.Settings)
+                val applyContext = currentComposer.applyCoroutineContext
+                val clickTrue = remember { mutableStateOf(false) }
+                val mCurAnimValueColor = remember { Animatable(1f) }
+                val animalBooleanState: Float by animateFloatAsState(
+                    if (viewModel.animalBoolean.value) {
+                        0f
+                    } else {
+                        1f
+                    }, animationSpec = TweenSpec(durationMillis = 600),
+                    finishedListener = {
+                        if (it >= 0.9f && clickTrue.value){
+                            viewModel.animalBoolean.value = !viewModel.animalBoolean.value
+                        }
+                    }
+                )
+                val stiffness = 100f
+                val animalScaleCanvasWidthValue: Float by animateFloatAsState(
+                    if (!clickTrue.value) {
+                        0f
+                    } else {
+                        30f
+                    },
+                    animationSpec = SpringSpec(stiffness = stiffness),
+                )
+                val animalScaleCanvasHeightValue: Float by animateFloatAsState(
+                    if (!clickTrue.value) {
+                        0f
+                    } else {
+                        30f
+                    },
+                    animationSpec = SpringSpec(stiffness = stiffness),
+                )
+                val mCurAnimalHeight: Float by animateFloatAsState(
+                    if (!clickTrue.value) {
+                        -30f
+                    } else {
+                        30f
+                    },
+                    animationSpec = SpringSpec(stiffness = stiffness),
+                )
+                val mCurAnimValueY: Float by animateFloatAsState(
+                    if (!clickTrue.value) {
+                        0f
+                    } else {
+                        1f
+                    }, animationSpec = SpringSpec(stiffness = stiffness),
+                    finishedListener = {
+                        if (it >= 0.9f && clickTrue.value) {
+                            CoroutineScope(applyContext).launch {
+                                mCurAnimValueColor.animateTo(
+                                    0f,
+                                    animationSpec = SpringSpec(stiffness = stiffness)
+                                )
+                            }
+                        }
+                        if (it <= 0.01f && !clickTrue.value) {
+                            CoroutineScope(applyContext).launch {
+                                mCurAnimValueColor.animateTo(
+                                    1f,
+                                    animationSpec = SpringSpec(stiffness = stiffness)
+                                )
+                            }
+                        }
+                        //动画结束->回归原来位置
+                        if (it > 0.9f && clickTrue.value) {
+                            clickTrue.value = !clickTrue.value
+                        }
+                    }
+                    //TweenSpec(durationMillis = 1600)
+                    // DurationBasedAnimationSpec, FloatSpringSpec, FloatTweenSpec, KeyframesSpec, RepeatableSpec, SnapSpec, SpringSpec, TweenSpec
+                )
+                //半径的决定动画
+                val mCurAnimValue: Float by animateFloatAsState(
+                    if (clickTrue.value) {
+                        0f
+                    } else {
+                        1f
+                    }, animationSpec = SpringSpec(dampingRatio = 1f, stiffness = 30f)
+                )
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)) {
+                    Canvas(modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()) {
+                        drawIntoCanvas { canvas ->
+                            //绘制底部曲线到底部
+                            canvas.translate(0f, size.height)
+                            canvas.scale(1f, -1f)
+                            val paint = Paint()
+                            paint.strokeWidth = 2f
+                            paint.style = PaintingStyle.Fill
+                            paint.color = Color(245, 215, 254, 255)
+
+                            val height = 276f
+                            val cicleHeight = height / 3
+                            val ScaleHeight = animalScaleCanvasHeightValue
+                            val ScaleWidth = animalScaleCanvasWidthValue
+                            //控制脖子左边,一直在变化
+                            val path = Path()
+                            path.moveTo(0f + ScaleWidth, 0f)
+                            path.lineTo(0f + ScaleWidth, height - cicleHeight + ScaleHeight)
+                            path.quadraticBezierTo(
+                                0f + ScaleWidth,
+                                height + ScaleHeight,
+                                cicleHeight,
+                                height + ScaleHeight
+                            )
+
+                            //第一个左弧度
+                            path.lineTo(size.width - cicleHeight - ScaleWidth, height + ScaleHeight)
+                            path.quadraticBezierTo(
+                                size.width - ScaleWidth,
+                                height + ScaleHeight,
+                                size.width - ScaleWidth,
+                                height - cicleHeight + ScaleHeight
+                            )
+                            path.lineTo(size.width - ScaleWidth, 0f)
+                            path.close()
+                            canvas.drawPath(path, paint)
+//--------------------------------------------------------------------------
+                            canvas.save()
+                            //中间凸起部分
+                            val centerHdX = size.width / 3 / 2 + size.width / 3 * viewModel.position.value!!
+                            //这里坐标系位置圆点就为上边线中点
+                            canvas.translate(centerHdX, height)
+                            val R = 30f
+                            //0-50是变大部分
+                            val RH = mCurAnimalHeight
+                            //50到-50是变为平
+                            val p0 = Offset(-R, 0f + RH + animalScaleCanvasHeightValue)
+                            val p1 = Offset(-R, R + RH + animalScaleCanvasHeightValue)
+                            val p3 = Offset(0f, 2 * R - 30f + RH + animalScaleCanvasHeightValue)
+                            val p5 = Offset(R, R + RH + animalScaleCanvasHeightValue)
+                            val p6 = Offset(R, 0f + RH + animalScaleCanvasHeightValue)
+                            val p7 = Offset(100f, -10f + animalScaleCanvasHeightValue)
+
+                            val pathCub = Path()
+                            pathCub.moveTo(-100f, 0f + animalScaleCanvasHeightValue)
+                            pathCub.cubicTo(p0.x, p0.y, p1.x, p1.y, p3.x, p3.y)
+                            pathCub.cubicTo(p5.x, p5.y, p6.x, p6.y, p7.x, p7.y)
+
+                            canvas.drawPath(pathCub, paint)
+
+                            //中间凸起部分落下
+                            canvas.restore()
+
+//--------------------------------------------------------------------------
+
+                            //绘制弹性圆球
+                            //假设点击的是index=0一共三个底部按钮
+                            canvas.save()
+                            //1,2,3
+                            //将坐标系移动到点击部位()这样写起来比较爽好理解。将点击部位作为我们的坐标系园点
+                            val centerX = size.width / 3 / 2 + size.width / 3 * viewModel.position.value!!
+                            Log.e("圆点", "LoginPage: $centerX")
+                            canvas.translate(centerX, height * 2 / 3.2f)
+                            //canvas.drawCircle(Offset(0f, 0f), 100f, paint)
+                            //这里我们清楚坐标圆点之后我们进行绘制我们的圆
+                            val r = 100f - 50 * (1 - mCurAnimValue)
+                            //圆的坐标和中心点的坐标计算
+                            //1.首先 原点为(0f,0f)且半径r=100f--->那么p6(0f,r),p5=(r/2,r),p4(r,r/2),p3(r,0f)
+                            //2.第二象限里面 p2(r,-r/2),p1(r/2,-r),p0(0f,r)
+                            //3.第三象限里面 p11(-r/2,-r),p10(-r,-r/2),p9(-r,0f)
+                            //4.第四象限里面 p8(-r,r/2),p7(r/2,r),p6(0f,r)
+                            Log.e("mCurAnimValueY", "LoginPage=: $mCurAnimValueY")
+                            val moveTopHeight = mCurAnimValueY * 250f
+                            val P0 = Offset(0f, -r + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P1 = Offset(r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P2 = Offset(r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P3 = Offset(r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P4 = Offset(r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P5 = Offset(r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P6 = Offset(0f, r + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P7 = Offset(-r / 2, r + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P8 = Offset(-r, r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P9 = Offset(-r, 0f + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P10 = Offset(-r, -r / 2 + moveTopHeight + animalScaleCanvasHeightValue)
+                            val P11 = Offset(-r / 2, -r + moveTopHeight + animalScaleCanvasHeightValue)
+
+                            val heightController = 180f
+                            val pathReult = Path()
+                            pathReult.moveTo(P0.x, P0.y - heightController * mCurAnimValue)
+                            //p1->p2->p3
+                            pathReult.cubicTo(
+                                P1.x,
+                                P1.y - 30 * mCurAnimValue,
+                                P2.x,
+                                P2.y - 30 * mCurAnimValue,
+                                P3.x,
+                                P3.y
+                            )
+                            //p4->p5->p6
+                            pathReult.cubicTo(P4.x, P4.y, P5.x, P5.y, P6.x, P6.y)
+                            //p7->p8->p9
+                            pathReult.cubicTo(P7.x, P7.y, P8.x, P8.y, P9.x, P9.y)
+                            //p10->p11->p0
+                            pathReult.cubicTo(
+                                P10.x,
+                                P10.y - 30 * mCurAnimValue,
+                                P11.x,
+                                P11.y - 30 * mCurAnimValue,
+                                P0.x,
+                                P0.y - heightController * mCurAnimValue
+                            )
+                            pathReult.close()
+                            paint.color = Color(245, 215, 254, mCurAnimValueColor.value.toInt() * 255)
+                            //canvas.drawPath(pathReult, paint)
+                        }
+                    }
+                    LazyRow(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.Bottom) {
+                        items(listTitle.size) {index ->
+                            Column( // Material 庫中的圖標，有 Filled, Outlined, Rounded, Sharp, Two Tone 等
+//                        horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .setModifiers(
+                                        viewModel.position.value,
+                                        index,
+                                        animalBooleanState
+                                    )
+                                    .clickable {
+                                        viewModel.positionChanged(index)
+                                        clickTrue.value = !clickTrue.value
+                                        viewModel.animalBoolean.value =
+                                            !viewModel.animalBoolean.value
+                                        for (i in 0 until listStateColor.size) {
+                                            if (i == viewModel.position.value) {
+                                                listStateColor[i] = colors.error
+                                            } else {
+                                                listStateColor[i] = colors.onError
+                                            }
+                                        }
+                                    }) {
+                                Icon(
+                                    listIcon[index],
+                                    tint = listStateColor[index],
+                                    contentDescription = getString(CONTENT_DESCRIPTION),
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .setModifiers(
+                                            viewModel.position.value,
+                                            index,
+                                            animalBooleanState
+                                        )
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(listTitle[index], color = listStateColor[index])
+                            }
+                        }
+                    }
+                }
+            }
+
+            @Composable
+            fun EasyCropDemo(context: Context, scope: CoroutineScope) {
+
+            }
+
+
 
 //    private lateinit var getCanvas: Canvas
 //    @Composable
@@ -5802,291 +6702,365 @@ class MainActivity : ComponentActivity(), SampleInterface {
 //    }
 
 
-    @Composable
-    fun ActivitySix(context: Context, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                coroutineScope.launch(Dispatchers.Main) {
-                                    navigation()
+            @Composable
+            fun ActivitySix(coroutineScope: CoroutineScope, colors: Colors, navigation: () -> Unit) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            navigationIcon = {
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.Main) {
+                                            navigation()
+                                        }
+                                    }) {
+                                    Icon(tint = colors.onError,
+                                        imageVector = Icons.Default.ArrowBack,
+                                        contentDescription = getString(CONTENT_DESCRIPTION)
+                                    )
                                 }
-                            }) {
-                            Icon(tint = colors.onError,
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = getString(CONTENT_DESCRIPTION)
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                coroutineScope.launch(Dispatchers.IO) {
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.IO) {
 
+                                        }
+                                    }) {
+                                    Icon(tint = colors.onError,
+                                        imageVector = Icons.Default.Home,
+                                        contentDescription = getString(CONTENT_DESCRIPTION)
+                                    )
                                 }
-                            }) {
-                            Icon(tint = colors.onError,
-                                imageVector = Icons.Default.Home,
-                                contentDescription = getString(CONTENT_DESCRIPTION)
-                            )
-                        }
-                    }, title = {
-                        Text(
-                            text = "ActivitySix",
-                            color = colors.onError,
-                        )
-                    }, actions = {
-                        IconButtonDemo(
-                            content = {
-                                IconButton(onClick = {
+                            }, title = {
+                                Text(
+                                    text = "ActivitySix",
+                                    color = colors.onError,
+                                )
+                            }, actions = {
+                                IconButtonDemo(
+                                    content = {
+                                        IconButton(onClick = {
 
-                                }) {
-                                    Icon(Icons.Filled.Info, getString(CONTENT_DESCRIPTION), tint = Color.White)
-                                }
-                            },
-                            onClick = {
-                                coroutineScope.launch(Dispatchers.Main) {
+                                        }) {
+                                            Icon(Icons.Filled.Info, getString(CONTENT_DESCRIPTION), tint = Color.White)
+                                        }
+                                    },
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.Main) {
 
-                                }
+                                        }
+                                    })
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
+                                Text(
+                                    text = "更多",
+                                    color = colors.onError,
+                                    modifier = Modifier.clickable {
+                                        coroutineScope.launch(Dispatchers.IO) {
+
+                                        }
+                                    }
+                                )
                             })
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
-                        Text(
-                            text = "更多",
-                            color = colors.onError,
-                            modifier = Modifier.clickable {
-                                coroutineScope.launch(Dispatchers.IO) {
+                    },
+                    bottomBar = {
 
+                    },
+                ) {
+                    Surface(modifier = Modifier.padding(it)) {
+                        DataSaverDemo()
+                    }
+                }
+            }
+
+            @ExperimentalSerializationApi
+            @Composable
+            fun DataSaverDemo() { // or LocalDataSaver provides dataSaverMMKV LocalDataSaver provides dataSaverDataStorePreferences your Class instance
+                val emptyBean = DataSaverBean(233, "FunnySaltyFish")
+                // 获取 DataSaverInterface | 您可以使用此变量做手动保存
+                val dataSaverInterface = LocalDataSaver.current
+                // 你可以设置 [savePolicy]为其他类型(参见 [SavePolicy] )，以防止某些情况下过于频繁地保存
+                // 如果你设置为 SavePolicy.NEVER，则写入本地的操作需要自己做
+                // 例如: onClick = { dataSaverState.save() }
+                var stringExample by rememberDataSaverState(KEY_STRING_EXAMPLE, "FunnySaltyFish, tap to input", savePolicy = SavePolicy.IMMEDIATELY, async = true)
+                var booleanExample by rememberDataSaverState(KEY_BOOLEAN_EXAMPLE, false)
+                var beanExample by rememberDataSaverState(KEY_BEAN_EXAMPLE, default = emptyBean)
+                var themeType: ThemeType by rememberDataSaverState(key = "key_theme_type", default = ThemeType.DynamicNative)
+                var listExample by rememberDataSaverListState(key = "key_list_example", default = listOf(emptyBean.copy(label = "Name 1"), emptyBean.copy(label = "Name 2"), emptyBean.copy(label = "Name 3")))
+                // Among our basic implementations, only MMKV supports `Parcelable` by default
+                var parcelableExample by rememberDataSaverState(key = "parcelable_example", default = DataSaverParcelable("FunnySaltyFish", 20))
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState())) {
+                    Heading(text = "Auto Save Examples:")
+                    Text(text = "This is an example of saving String") // 保存字符串的示例
+                    OutlinedTextField(value = stringExample, onValueChange = {
+                        stringExample = it
+                    })
+
+                    Text(text = "This is an example of saving Boolean") // 保存布尔值的示例
+                    Switch(checked = booleanExample, onCheckedChange = {
+                        booleanExample = it
+                    })
+
+                    Text(text = "This is an example of saving Parcelable") // 保存布尔值的示例
+                    Text(parcelableExample.toString())
+                    Button(onClick = {
+                        parcelableExample = parcelableExample.copy(age = parcelableExample.age + 1)
+                    }) {
+                        Text(text = "Add age by 1")
+                    }
+
+                    Text(text = "This is an example of saving custom Data Bean") // 保存自定义类型的示例
+                    Text(text = beanExample.toString())
+                    Button(onClick = {
+                        beanExample = beanExample.copy(id = beanExample.id + 1)
+                    }) {
+                        Text(text = "Add bean's id") // id自加
+                    }
+
+                    Text(text = "This is an example of saving custom Sealed Class") // 保存自定义类型的示例
+                    Column(
+                        Modifier
+                            .background(MaterialTheme.colors.surface, RoundedCornerShape(16.dp))
+                            .padding(8.dp)) {
+                        Text(
+                            modifier = Modifier.semantics { heading() },
+                            text = "主題/Theme",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        RadioTile(text = "默認", selected = themeType == ThemeType.StaticDefault) {
+                            themeType = ThemeType.StaticDefault
+                        }
+                        RadioTile(text = "動態取色", selected = themeType == ThemeType.DynamicNative) {
+                            themeType = ThemeType.DynamicNative
+                        }
+                    }
+                    val nullableCustomBeanState: DataSaverMutableState<DataSaverBean?> = rememberDataSaverState(key = "nullable_bean", initialValue = null)
+                    Text(text = "This is an example of saving custom Data Bean(nullable)") // 保存自定义类型的示例
+                    Text(text = nullableCustomBeanState.value.toString())
+                    Row(Modifier.fillMaxWidth()) {
+                        Button(onClick = {
+                            nullableCustomBeanState.value = DataSaverBean(id = 100, label = "I'm not null")
+                        }) {
+                            Text(text = "Set As Not Null")
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Button(onClick = {
+                            nullableCustomBeanState.value = null
+                            // nullableCustomBeanState.remove(replacement = EmptyBean)
+                        }) {
+                            Text(text = "Set As Null")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Heading(text = "Save-When-Disposed Examples:")
+                    SaveWhenDisposedExample()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Heading(text = "List Example")
+                    LazyColumn(Modifier.heightIn(0.dp, 400.dp)) {
+                        items(listExample) { item ->
+                            Text(modifier = Modifier.padding(8.dp), text = item.toString(), fontSize = 16.sp)
+                        }
+                        item {
+                            Row {
+                                Button(onClick = {
+                                    listExample =
+                                        listExample + emptyBean.copy(label = "Name ${listExample.size + 1}")
+                                }) {
+                                    Text(text = "Add To List")
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Button(onClick = {
+                                    if (listExample.isNotEmpty()) listExample = listExample.dropLast(1)
+                                }) {
+                                    Text(text = "Remove From List")
                                 }
                             }
-                        )
-                    })
-            },
-            bottomBar = {
-
-            },
-        ) {
-            Surface(modifier = Modifier.padding(it)) {
-                DataSaverDemo()
-            }
-        }
-    }
-
-    @ExperimentalSerializationApi
-    @Composable
-    fun DataSaverDemo() { // or LocalDataSaver provides dataSaverMMKV LocalDataSaver provides dataSaverDataStorePreferences your Class instance
-        val emptyBean = DataSaverBean(233, "FunnySaltyFish")
-        // 获取 DataSaverInterface | 您可以使用此变量做手动保存
-        val dataSaverInterface = LocalDataSaver.current
-        // 你可以设置 [savePolicy]为其他类型(参见 [SavePolicy] )，以防止某些情况下过于频繁地保存
-        // 如果你设置为 SavePolicy.NEVER，则写入本地的操作需要自己做
-        // 例如: onClick = { dataSaverState.save() }
-        var stringExample by rememberDataSaverState(KEY_STRING_EXAMPLE, "FunnySaltyFish, tap to input", savePolicy = SavePolicy.IMMEDIATELY, async = true)
-        var booleanExample by rememberDataSaverState(KEY_BOOLEAN_EXAMPLE, false)
-        var beanExample by rememberDataSaverState(KEY_BEAN_EXAMPLE, default = emptyBean)
-        var themeType: ThemeType by rememberDataSaverState(key = "key_theme_type", default = ThemeType.DynamicNative)
-        var listExample by rememberDataSaverListState(key = "key_list_example", default = listOf(emptyBean.copy(label = "Name 1"), emptyBean.copy(label = "Name 2"), emptyBean.copy(label = "Name 3")))
-        // Among our basic implementations, only MMKV supports `Parcelable` by default
-        var parcelableExample by rememberDataSaverState(key = "parcelable_example", default = DataSaverParcelable("FunnySaltyFish", 20))
-        Column(Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
-            Heading(text = "Auto Save Examples:")
-            Text(text = "This is an example of saving String") // 保存字符串的示例
-            OutlinedTextField(value = stringExample, onValueChange = {
-                stringExample = it
-            })
-
-            Text(text = "This is an example of saving Boolean") // 保存布尔值的示例
-            Switch(checked = booleanExample, onCheckedChange = {
-                booleanExample = it
-            })
-
-            Text(text = "This is an example of saving Parcelable") // 保存布尔值的示例
-            Text(parcelableExample.toString())
-            Button(onClick = {
-                parcelableExample = parcelableExample.copy(age = parcelableExample.age + 1)
-            }) {
-                Text(text = "Add age by 1")
-            }
-
-            Text(text = "This is an example of saving custom Data Bean") // 保存自定义类型的示例
-            Text(text = beanExample.toString())
-            Button(onClick = {
-                beanExample = beanExample.copy(id = beanExample.id + 1)
-            }) {
-                Text(text = "Add bean's id") // id自加
-            }
-
-            Text(text = "This is an example of saving custom Sealed Class") // 保存自定义类型的示例
-            Column(
-                Modifier
-                    .background(MaterialTheme.colors.surface, RoundedCornerShape(16.dp))
-                    .padding(8.dp)) {
-                Text(
-                    modifier = Modifier.semantics { heading() },
-                    text = "主題/Theme",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                RadioTile(text = "默認", selected = themeType == ThemeType.StaticDefault) {
-                    themeType = ThemeType.StaticDefault
-                }
-                RadioTile(text = "動態取色", selected = themeType == ThemeType.DynamicNative) {
-                    themeType = ThemeType.DynamicNative
-                }
-            }
-            val nullableCustomBeanState: DataSaverMutableState<DataSaverBean?> = rememberDataSaverState(key = "nullable_bean", initialValue = null)
-            Text(text = "This is an example of saving custom Data Bean(nullable)") // 保存自定义类型的示例
-            Text(text = nullableCustomBeanState.value.toString())
-            Row(Modifier.fillMaxWidth()) {
-                Button(onClick = {
-                    nullableCustomBeanState.value = DataSaverBean(id = 100, label = "I'm not null")
-                }) {
-                    Text(text = "Set As Not Null")
-                }
-                Spacer(modifier = Modifier.width(4.dp))
-                Button(onClick = {
-                    nullableCustomBeanState.value = null
-                    // nullableCustomBeanState.remove(replacement = EmptyBean)
-                }) {
-                    Text(text = "Set As Null")
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Heading(text = "Save-When-Disposed Examples:")
-            SaveWhenDisposedExample()
-            Spacer(modifier = Modifier.height(16.dp))
-            Heading(text = "List Example")
-            LazyColumn(Modifier.heightIn(0.dp, 400.dp)) {
-                items(listExample) { item ->
-                    Text(modifier = Modifier.padding(8.dp), text = item.toString(), fontSize = 16.sp)
-                }
-                item {
-                    Row {
-                        Button(onClick = {
-                            listExample =
-                                listExample + emptyBean.copy(label = "Name ${listExample.size + 1}")
-                        }) {
-                            Text(text = "Add To List")
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Button(onClick = {
-                            if (listExample.isNotEmpty()) listExample = listExample.dropLast(1)
-                        }) {
-                            Text(text = "Remove From List")
                         }
                     }
                 }
             }
-        }
-    }
 
-    @Composable
-    private fun SaveWhenDisposedExample() {
-        var showDialog by remember {
-            mutableStateOf(false)
-        }
-        if (showDialog) AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(text = "Sample") },
-            text = {
-                var stringExample2 by rememberDataSaverState(
-                    key = KEY_STRING_EXAMPLE_2,
-                    initialValue = "this one will be saved only when disposed",
-                    savePolicy = SavePolicy.DISPOSED,
-                    async = false
+            @Composable
+            private fun SaveWhenDisposedExample() {
+                var showDialog by remember {
+                    mutableStateOf(false)
+                }
+                if (showDialog) AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    title = { Text(text = "Sample") },
+                    text = {
+                        var stringExample2 by rememberDataSaverState(
+                            key = KEY_STRING_EXAMPLE_2,
+                            initialValue = "this one will be saved only when disposed",
+                            savePolicy = SavePolicy.DISPOSED,
+                            async = false
+                        )
+                        OutlinedTextField(value = stringExample2, onValueChange = {
+                            stringExample2 = it
+                        })
+                    },
+                    confirmButton = { TextButton(onClick = { showDialog = false }) { Text(text = "Close") } },
                 )
-                OutlinedTextField(value = stringExample2, onValueChange = {
-                    stringExample2 = it
-                })
-            },
-            confirmButton = { TextButton(onClick = { showDialog = false }) { Text(text = "Close") } },
-        )
-        Button(onClick = { showDialog = true }) {
-            Text(text = "Click Me To Open Dialog")
-        }
-    }
-
-    @Composable
-    fun Heading(text: String) {
-        Text(text, fontWeight = FontWeight.W600, fontSize = 18.sp)
-    }
-
-    @Composable
-    fun RadioTile(
-        text: String,
-        selected: Boolean,
-        onClick: () -> Unit,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)) {
-            Text(text = text, fontSize = 24.sp, fontWeight = FontWeight.W700)
-            RadioButton(selected = selected, onClick = onClick)
-        }
-    }
-
-    @Composable
-    fun LazyListState.isScrollingUp(): Boolean {
-        var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
-        var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
-        return remember(this) {
-            derivedStateOf {
-                if (previousIndex != firstVisibleItemIndex) {
-                    previousIndex > firstVisibleItemIndex
-                } else {
-                    previousScrollOffset >= firstVisibleItemScrollOffset
-                }.also {
-                    previousIndex = firstVisibleItemIndex
-                    previousScrollOffset = firstVisibleItemScrollOffset
+                Button(onClick = { showDialog = true }) {
+                    Text(text = "Click Me To Open Dialog")
                 }
             }
-        }.value
-    }
 
-    private fun Context.showToast(msg: String) = Toast.makeText(this, msg, LENGTH_SHORT).show()
-    sealed class Result {
-        object Loading : Result()
-        object Error : Result()
-        class Success(val image: ImageRes) : Result()
-    }
-
-    class ImageRes(val imageIdRes: Int)
-    class ImageRepository {
-        /**
-         * 返回可繪製資源或 null 以模擬具有成功或錯誤狀態的結果
-         */
-        suspend fun load(url: String): ImageRes? {
-            delay(2000) // 如果得到一個隨機數為零，則添加 Random 以返回 null。 得到null的可能性是1/4
-            return if (Random.nextInt(until = 4) > 0) {
-                val images = listOf(
-                    R.drawable.ic_launcher_background,
-                    R.drawable.ic_launcher_background,
-                    R.drawable.ic_launcher_background,
-                    R.drawable.ic_launcher_background,
-                    R.drawable.ic_launcher_background,
-                    R.drawable.ic_launcher_background,
-                )
-                ImageRes(images[Random.nextInt(images.size)]) // 每次調用 load 函數時加載一個隨機 id
-            } else {
-                null
+            @Composable
+            fun Heading(text: String) {
+                Text(text, fontWeight = FontWeight.W600, fontSize = 18.sp)
             }
+
+            @Composable
+            fun RadioTile(
+                text: String,
+                selected: Boolean,
+                onClick: () -> Unit,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)) {
+                    Text(text = text, fontSize = 24.sp, fontWeight = FontWeight.W700)
+                    RadioButton(selected = selected, onClick = onClick)
+                }
+            }
+
+            @Composable
+            fun ActivitySeven(context: Context, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            navigationIcon = {
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.Main) {
+                                            navigation()
+                                        }
+                                    }) {
+                                    Icon(tint = colors.onError,
+                                        imageVector = Icons.Default.ArrowBack,
+                                        contentDescription = getString(CONTENT_DESCRIPTION)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.IO) {
+
+                                        }
+                                    }) {
+                                    Icon(tint = colors.onError,
+                                        imageVector = Icons.Default.Home,
+                                        contentDescription = getString(CONTENT_DESCRIPTION)
+                                    )
+                                }
+                            }, title = {
+                                Text(
+                                    text = "ActivitySeven",
+                                    color = colors.onError,
+                                )
+                            }, actions = {
+                                IconButtonDemo(
+                                    content = {
+                                        IconButton(onClick = {
+
+                                        }) {
+                                            Icon(Icons.Filled.Info, getString(CONTENT_DESCRIPTION), tint = Color.White)
+                                        }
+                                    },
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.Main) {
+
+                                        }
+                                    })
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
+                                Text(
+                                    text = "更多",
+                                    color = colors.onError,
+                                    modifier = Modifier.clickable {
+                                        coroutineScope.launch(Dispatchers.IO) {
+
+                                        }
+                                    }
+                                )
+                            })
+                    },
+                    bottomBar = {
+
+                    },
+                ) {
+                    Surface(modifier = Modifier.padding(it)) {
+
+                    }
+                }
+            }
+
+            @Composable
+            fun LazyListState.isScrollingUp(): Boolean {
+                var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
+                var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
+                return remember(this) {
+                    derivedStateOf {
+                        if (previousIndex != firstVisibleItemIndex) {
+                            previousIndex > firstVisibleItemIndex
+                        } else {
+                            previousScrollOffset >= firstVisibleItemScrollOffset
+                        }.also {
+                            previousIndex = firstVisibleItemIndex
+                            previousScrollOffset = firstVisibleItemScrollOffset
+                        }
+                    }
+                }.value
+            }
+
+            private fun Context.showToast(msg: String) = Toast.makeText(this, msg, LENGTH_SHORT).show()
+            sealed class Result {
+                object Loading : Result()
+                object Error : Result()
+                class Success(val image: ImageRes) : Result()
+            }
+
+            class ImageRes(val imageIdRes: Int)
+            class ImageRepository {
+                /**
+                 * 返回可繪製資源或 null 以模擬具有成功或錯誤狀態的結果
+                 */
+                suspend fun load(url: String): ImageRes? {
+                    delay(2000) // 如果得到一個隨機數為零，則添加 Random 以返回 null。 得到null的可能性是1/4
+                    return if (Random.nextInt(until = 4) > 0) {
+                        val images = listOf(
+                            R.drawable.ic_launcher_background,
+                            R.drawable.ic_launcher_background,
+                            R.drawable.ic_launcher_background,
+                            R.drawable.ic_launcher_background,
+                            R.drawable.ic_launcher_background,
+                            R.drawable.ic_launcher_background,
+                        )
+                        ImageRes(images[Random.nextInt(images.size)]) // 每次調用 load 函數時加載一個隨機 id
+                    } else {
+                        null
+                    }
+                }
+            }
+
+            @Preview(name = "Light Mode")
+            @Preview(
+                uiMode = Configuration.UI_MODE_NIGHT_YES,
+                showBackground = true,
+                name = "Dark Mode"
+            )
+
+            @Composable
+            fun PreviewMessageCard() {
+                PageJumpSamples(msg = Message("Colleague", "Hey, take a look at Jetpack Compose, it's great!"))
+            }
+
         }
-    }
-
-    @Preview(name = "Light Mode")
-    @Preview(
-        uiMode = Configuration.UI_MODE_NIGHT_YES,
-        showBackground = true,
-        name = "Dark Mode"
-    )
-
-    @Composable
-    fun PreviewMessageCard() {
-        PageJumpSamples(msg = Message("Colleague", "Hey, take a look at Jetpack Compose, it's great!"))
-    }
-
-}
 
 class ExampleDelegate {
     var delegatedProperty: String by Delegate()
