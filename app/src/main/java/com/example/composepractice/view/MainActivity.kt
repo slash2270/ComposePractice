@@ -5,6 +5,10 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.BitmapFactory.Options
+import android.graphics.Shader
+import android.graphics.drawable.ShapeDrawable
+import android.graphics.drawable.shapes.OvalShape
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
@@ -13,6 +17,7 @@ import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -47,8 +52,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.*
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -106,15 +111,14 @@ import com.example.composepractice.Constants.Companion.ROUTE_SIX
 import com.example.composepractice.Constants.Companion.ROUTE_THREE
 import com.example.composepractice.Constants.Companion.ROUTE_TWO
 import com.example.composepractice.R
-import com.example.composepractice.components.OverlayImagePainter
-import com.example.composepractice.components.ScrollableAppBar
-import com.example.composepractice.components.SquashedOval
+import com.example.composepractice.components.*
 import com.example.composepractice.data.*
 import com.example.composepractice.model.ThemeType
 import com.example.composepractice.ui.theme.BloomTheme
 import com.example.composepractice.ui.theme.ComposePracticeTheme
 import com.example.composepractice.ui.theme.ComposeTutorialTheme
 import com.example.composepractice.ui.theme.Shapes
+import com.example.composepractice.view.MainActivity.VerticalScopeInstance.weight
 import com.example.composepractice.viewmodel.AnimationViewModel
 import com.funny.data_saver.core.*
 import com.funny.data_saver.core.DataSaverConverter.registerTypeConverters
@@ -137,6 +141,7 @@ import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.properties.Delegates
 import kotlin.random.Random
 import kotlin.ranges.coerceAtLeast
 import kotlin.reflect.KProperty
@@ -148,7 +153,6 @@ interface SampleInterface {
 
 @OptIn(ExperimentalSerializationApi::class)
 class MainActivity : ComponentActivity(), SampleInterface {
-
     private val localInterface = staticCompositionLocalOf<SampleInterface> { error("Not provided") }
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("dataStore")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -5749,9 +5753,21 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     Row {
                         ImageCustom()
                         Spacer(modifier = Modifier.width(8.dp))
-                        ClockView(getSize = size, hourAngle = 90f, minuteAngle = 360f, secondAngle = 360f)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        MeasureText(size)
+                        Column {
+                            Row {
+                                ClockView(getSize = size, hourAngle = 90f, minuteAngle = 360f, secondAngle = 360f)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                MeasureText(size)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                DrawImageDemo(size)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row {
+                                TriangleDemo(size)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                OvalDemo(size)
+                            }
+                        }
                     }
                 }
             }
@@ -6018,8 +6034,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
     @Composable
     fun ImageCustomPainter(size: Dp) {
-        val rainbowImage =
-            BitmapFactory.decodeResource(resources, R.drawable.desert_chic).asImageBitmap()
+        val rainbowImage = BitmapFactory.decodeResource(resources, R.drawable.desert_chic).asImageBitmap()
         val dogImage = ImageBitmap.imageResource(R.drawable.logo)
         val customPainter = OverlayImagePainter(dogImage, rainbowImage)
         Row {
@@ -6146,6 +6161,48 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 .size(getSize)
         )
     }
+
+    @Composable
+    fun DrawImageDemo(getSize: Dp) {
+        val search = BitmapFactory.decodeResource(resources, R.drawable.logo).asImageBitmap()
+        Canvas(modifier = Modifier.size(getSize), onDraw = {
+            drawImage(search)
+        })
+    }
+
+    @Composable
+    fun TriangleDemo(getSize: Dp) {
+        Spacer(
+            modifier = Modifier
+                .drawWithCache {
+                    val path = Path()
+                    path.moveTo(0f, 0f)
+                    path.lineTo(size.width / 2f, size.height / 2f)
+                    path.lineTo(size.width, 0f)
+                    path.close()
+                    onDrawBehind {
+                        drawPath(path, Color.Magenta, style = Stroke(width = 1f))
+                    }
+                }
+                .size(getSize)
+        )
+    }
+
+    @Composable
+    fun OvalDemo(getSize: Dp) {
+        val drawable = ShapeDrawable(OvalShape())
+        Spacer(
+            modifier = Modifier
+                .drawWithContent {
+                    drawIntoCanvas { canvas ->
+                        drawable.setBounds(0, 0, size.width.toInt(), size.height.toInt())
+                        drawable.draw(canvas.nativeCanvas)
+                    }
+                }
+                .size(getSize)
+        )
+    }
+
 
             @Composable
             fun InkColorCanvas(option: Options) {
@@ -6643,13 +6700,6 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
             }
 
-            @Composable
-            fun EasyCropDemo(context: Context, scope: CoroutineScope) {
-
-            }
-
-
-
 //    private lateinit var getCanvas: Canvas
 //    @Composable
 //    fun CanvasCircle() {
@@ -6700,7 +6750,6 @@ class MainActivity : ComponentActivity(), SampleInterface {
 //        }
 //        canvas.restore()
 //    }
-
 
             @Composable
             fun ActivitySix(coroutineScope: CoroutineScope, colors: Colors, navigation: () -> Unit) {
@@ -6994,29 +7043,698 @@ class MainActivity : ComponentActivity(), SampleInterface {
 
                     },
                 ) {
-                    Surface(modifier = Modifier.padding(it)) {
-
+                    val size = 90.dp
+                    Surface(modifier = Modifier.padding(it), color = Color.Transparent) {
+                        Column {
+                            Row {
+                                DrawPointsDemo(size)
+                                DrawWithContentDemo(size)
+                                Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.size(size)) {
+                                    DrawBehindDemo()
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    DrawWithCacheDemo()
+                                }
+                                GraphicsLayerDemo(size)
+                            }
+                            GraphicsLayerScale(colors)
+                            Row {
+                                JellyFishDemo()
+                                BrushGradientShapeDemo()
+                            }
+                        }
                     }
                 }
             }
 
-            @Composable
-            fun LazyListState.isScrollingUp(): Boolean {
-                var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
-                var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
-                return remember(this) {
-                    derivedStateOf {
-                        if (previousIndex != firstVisibleItemIndex) {
-                            previousIndex > firstVisibleItemIndex
-                        } else {
-                            previousScrollOffset >= firstVisibleItemScrollOffset
-                        }.also {
-                            previousIndex = firstVisibleItemIndex
-                            previousScrollOffset = firstVisibleItemScrollOffset
-                        }
+    @Composable
+    fun DrawWithContentDemo(size: Dp) {
+        var pointerOffset by remember { mutableStateOf(Offset(0f, 0f)) }
+        Column(
+            modifier = Modifier
+                .size(size)
+                .pointerInput("dragging") {
+                    detectDragGestures { change, dragAmount ->
+                        pointerOffset += dragAmount
                     }
-                }.value
+                }
+                .onSizeChanged {
+                    pointerOffset = Offset(it.width / 2f, it.height / 2f)
+                }
+                .drawWithContent {
+                    drawContent()
+                    // 在 pointerOffset 處繪製一個帶有小鎖孔的全黑區域，它將顯示部分 UI.
+                    drawRect(
+                        Brush.radialGradient(
+                            listOf(Color.Transparent, Color.Black),
+                            center = pointerOffset,
+                            radius = 100.dp.toPx(),
+                        )
+                    )
+                }
+        ) {
+            // Your composables here
+        }
+    }
+
+    @Composable
+    fun DrawPointsDemo(getSize: Dp) {
+        val list = listOf(
+            Offset(20f, 20f), Offset(40f, 40f), Offset(60f, 60f), Offset(80f, 80f),Offset(100f, 100f),
+            Offset(10f, 0f),Offset(20f, 0f), Offset(30f, 0f),Offset(40f, 0f), Offset(50f, 0f),Offset(60f, 0f),Offset(70f, 0f), Offset(80f, 0f),Offset(90f, 0f), Offset(100f, 0f),
+            Offset(0f, 10f),Offset(0f, 20f), Offset(0f, 30f),Offset(0f, 40f), Offset(0f, 50f),Offset(0f, 60f),Offset(0f, 70f), Offset(0f, 80f),Offset(0f, 90f), Offset(0f, 100f),
+        )
+        Box(modifier = Modifier.size(getSize), contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.size(100.dp, getSize), onDraw = {
+                drawPoints(points = list, pointMode = PointMode.Points, color = Color.Cyan, cap = StrokeCap.Butt, strokeWidth = 1f, alpha = 1f)
+            })
+            Text(
+                "Flipped Modifier",
+                modifier = Modifier.flipped()
+            )
+        }
+    }
+
+    @Composable
+    fun DrawBehindDemo() {
+        Text(
+            "DrawBehind",
+            modifier = Modifier
+                .drawBehind {
+                    drawRoundRect(
+                        Color(0xFFBBAAEE),
+                        cornerRadius = CornerRadius(10.dp.toPx())
+                    )
+                }
+                .padding(4.dp),
+            color = Color.White
+        )
+    }
+
+    @Composable
+    fun DrawWithCacheDemo() {
+        Text(
+            "DrawWithCache",
+            modifier = Modifier
+                .drawWithCache {
+                    val brush = Brush.linearGradient(
+                        listOf(
+                            Color(0xFF9E82F0),
+                            Color(0xFF42A5F5)
+                        )
+                    )
+                    onDrawBehind {
+                        drawRoundRect(
+                            brush,
+                            cornerRadius = CornerRadius(10.dp.toPx())
+                        )
+                    }
+                },
+            color = Color.White
+        )
+    }
+
+    @Composable
+    fun GraphicsLayerDemo(size: Dp) {
+        Box(
+            modifier = Modifier
+                .size(size)
+                .graphicsLayer {
+                    clip = true
+                    shape = CircleShape
+                    translationY = 50.dp.toPx()
+                }
+                .background(Color(0xFFF06292))
+        ) {
+            Text(
+                "GraphicsLayer",
+                style = TextStyle(color = Color.Black, fontSize = 46.sp),
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+    }
+
+    @Composable
+    fun GraphicsLayerScale(colors: Colors) {
+        var progressScaleX by remember { mutableStateOf(0f) }
+        var progressScaleY by remember { mutableStateOf(0f) }
+        var progressTranslationX by remember { mutableStateOf(0f) }
+        var progressTranslationY by remember { mutableStateOf(0f) }
+        var progressRotationX by remember { mutableStateOf(0f) }
+        var progressRotationY by remember { mutableStateOf(0f) }
+        var progressRotationZ by remember { mutableStateOf(0f) }
+        val imageSize = 60.dp
+        val scaleX = 1.2f
+        val scaleY = 0.8f
+        val translationX = 100.dp
+        val translationY = 100.dp
+        val rotationX = 90f
+        val rotationY = 270f
+        val rotationZ = 180f
+        // 滑條未經過部分的默認 alpha 值
+        val inactiveTrackAlpha = 0.24f
+        // 當滑條被禁用的狀態下已經過部分的默認 alpha 值
+        val disabledInactiveTrackAlpha = 0.12f
+        // 當滑條被禁用的狀態下未經過部分的默認 alpha 值
+        val disabledActiveTrackAlpha = 0.32f
+        // 在滑條上方顯示的刻度的默認的 alpha 值
+        val tickAlpha = 0.54f
+        // 當刻度線被禁用時，默認的 alpha 值
+        val activeTickColor = colors.onSurface
+        val activeTrackColor = colors.primaryVariant
+        val disabledInactiveTrackColor = colors.secondaryVariant
+        val disabledActiveTrackColor = colors.onSecondary
+        Column {
+            LazyRow{
+                item {
+                    SetImage(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                this.scaleX = progressScaleX
+                                this.alpha = 0.5f
+                            }
+                            .size(imageSize)
+                    )
+                }
+                item {
+                    SetImage(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                this.scaleY = progressScaleY
+                            }
+                            .size(imageSize)
+                    )
+                }
+                item {
+                    SetImage(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                this.translationX = progressTranslationX
+                                    .toDp()
+                                    .toPx()
+                            }
+                            .size(imageSize)
+                    )
+                }
+                item {
+                    SetImage(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                this.translationY = progressTranslationY
+                                    .toDp()
+                                    .toPx()
+                            }
+                            .size(imageSize)
+                    )
+                }
+                item {
+                    SetImage(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                this.rotationX = progressRotationX
+                            }
+                            .size(imageSize)
+                    )
+                }
+                item {
+                    SetImage(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                this.rotationY = progressRotationY
+                            }
+                            .size(imageSize)
+                    )
+                }
+                item {
+                    SetImage(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                this.rotationZ = progressRotationZ
+                            }
+                            .size(imageSize)
+                    )
+                }
             }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "ScaleX",
+                    color = colors.error
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Slider(
+                    value = progressScaleX,
+                    valueRange = 0f..scaleX,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colors.primary,
+                        disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
+                        activeTrackColor = MaterialTheme.colors.primary,
+                        inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
+                        disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
+                        disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
+                        activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
+                        inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
+                        disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
+                        disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
+                    ),
+                    onValueChange = {
+                        progressScaleX = it
+                    },
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "ScaleY",
+                    color = colors.error
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Slider(
+                    value = progressScaleY,
+                    valueRange = 0f..scaleY,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colors.primary,
+                        disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
+                        activeTrackColor = MaterialTheme.colors.primary,
+                        inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
+                        disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
+                        disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
+                        activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
+                        inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
+                        disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
+                        disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
+                    ),
+                    onValueChange = {
+                        progressScaleY = it
+                    },
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "TranslationX",
+                    color = colors.error
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Slider(
+                    value = progressTranslationX,
+                    valueRange = 0f..translationX.value,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colors.primary,
+                        disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
+                        activeTrackColor = MaterialTheme.colors.primary,
+                        inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
+                        disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
+                        disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
+                        activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
+                        inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
+                        disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
+                        disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
+                    ),
+                    onValueChange = {
+                        progressTranslationX = it
+                    },
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "TranslationY",
+                    color = colors.error
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Slider(
+                    value = progressTranslationY,
+                    valueRange = 0f..translationY.value,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colors.primary,
+                        disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
+                        activeTrackColor = MaterialTheme.colors.primary,
+                        inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
+                        disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
+                        disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
+                        activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
+                        inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
+                        disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
+                        disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
+                    ),
+                    onValueChange = {
+                        progressTranslationY = it
+                    },
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "RotationX",
+                    color = colors.error
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Slider(
+                    value = progressRotationX,
+                    valueRange = 0f..rotationX,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colors.primary,
+                        disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
+                        activeTrackColor = MaterialTheme.colors.primary,
+                        inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
+                        disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
+                        disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
+                        activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
+                        inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
+                        disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
+                        disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
+                    ),
+                    onValueChange = {
+                        progressRotationX = it
+                    },
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "RotationY",
+                    color = colors.error
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Slider(
+                    value = progressRotationY,
+                    valueRange = 0f..rotationY,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colors.primary,
+                        disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
+                        activeTrackColor = MaterialTheme.colors.primary,
+                        inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
+                        disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
+                        disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
+                        activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
+                        inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
+                        disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
+                        disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
+                    ),
+                    onValueChange = {
+                        progressRotationY = it
+                    },
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "RotationZ",
+                    color = colors.error
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Slider(
+                    value = progressRotationZ,
+                    valueRange = 0f..rotationZ,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colors.primary,
+                        disabledThumbColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled).compositeOver(MaterialTheme.colors.surface),
+                        activeTrackColor = MaterialTheme.colors.primary,
+                        inactiveTrackColor = activeTrackColor.copy(alpha = inactiveTrackAlpha),
+                        disabledActiveTrackColor = MaterialTheme.colors.onSurface.copy(alpha = disabledActiveTrackAlpha),
+                        disabledInactiveTrackColor = disabledActiveTrackColor.copy(alpha = disabledInactiveTrackAlpha),
+                        activeTickColor = contentColorFor(activeTrackColor).copy(alpha = tickAlpha),
+                        inactiveTickColor = activeTrackColor.copy(alpha = tickAlpha),
+                        disabledActiveTickColor = activeTickColor.copy(alpha = DisabledTickAlpha),
+                        disabledInactiveTickColor = disabledInactiveTrackColor.copy(alpha = DisabledTickAlpha)
+                    ),
+                    onValueChange = {
+                        progressRotationZ = it
+                    },
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun SetImage(modifier: Modifier) {
+        Image(
+            painter = painterResource(id = R.drawable.easy_care),
+            contentDescription = "Sunset",
+            modifier = modifier
+        )
+    }
+    
+    @Composable
+    fun JellyFishDemo() {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.width(120.dp)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                JellyfishAnimation()
+            } else {
+                Text(text = "Android 13\n才看得到")
+            }
+        }
+    }
+
+    @OptIn(ExperimentalTextApi::class)
+    @Composable
+    fun BrushGradientShapeDemo() {
+        val Coral = Color(0xFFF3A397)
+        val LightYellow = Color(0xFFF8EE94)
+        val list = listOf(Color.Red, Color.Blue, Color.Green)
+        val colorStops = arrayOf(0.1f to Color.Yellow, 0.2f to Color.Red, 0.7f to Color.Blue)
+//        val tileSize = with(LocalDensity.current) { 10.dp.toPx() }
+        val brushHorizontalGradient = Brush.horizontalGradient(list, tileMode = TileMode.Repeated)
+        val brushLinearGradient = Brush.linearGradient(list, tileMode = TileMode.Clamp)
+        val brushVerticalGradient = Brush.verticalGradient(list, tileMode = TileMode.Decal)
+        val brushSweepGradient = Brush.sweepGradient(list)
+        val brushSweepGradientStop = Brush.horizontalGradient(colorStops = colorStops)
+        val brushRadialGradient = Brush.radialGradient(list, tileMode = TileMode.Mirror)
+        val largeRadialGradient = object : ShaderBrush() {
+            override fun createShader(size: Size): Shader {
+                val biggerDimension = maxOf(size.height, size.width)
+                return RadialGradientShader(
+                    colors = list,
+                    center = size.center,
+                    radius = biggerDimension / 4f,
+                    colorStops = listOf(0f, 0.55f)
+                )
+            }
+        }
+        val imageBrush = ShaderBrush(ImageShader(ImageBitmap.imageResource(id = R.drawable.desert_chic)))
+        Row(modifier = Modifier.width(240.dp).fillMaxHeight()) {
+            Column(modifier = Modifier.weight(0.25f, true)) {
+                Box(modifier = Modifier.weight(0.5f, true)) {
+                    Canvas(
+                        modifier = Modifier.fillMaxSize(),
+                        onDraw = {
+                            drawRect(brushHorizontalGradient)
+                        }
+                    )
+                }
+                Box(modifier = Modifier.weight(0.5f, true)) {
+                    Canvas(
+                        modifier = Modifier.fillMaxSize(),
+                        onDraw = {
+                            drawRect(brushLinearGradient)
+                        }
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(0.25f, true)) {
+                Box(modifier = Modifier.weight(0.5f, true)) {
+                    Canvas(
+                        modifier = Modifier.fillMaxSize(),
+                        onDraw = {
+                            drawRect(brushVerticalGradient)
+                        }
+                    )
+                }
+                Box(modifier = Modifier.weight(0.5f, true)) {
+                    Canvas(
+                        modifier = Modifier.fillMaxSize(),
+                        onDraw = {
+                            drawRect(brushSweepGradient)
+                        }
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(0.25f, true)) {
+                Box(modifier = Modifier.weight(0.5f, true)) {
+                    Canvas(
+                        modifier = Modifier.fillMaxSize(),
+                        onDraw = {
+                            drawRect(brushRadialGradient)
+                        }
+                    )
+                }
+                Box(modifier = Modifier.weight(0.5f, true)) {
+
+                }
+            }
+//            Column(modifier = Modifier.weight(0.2f, true)) {
+//                Box(modifier = Modifier
+//                    .weight(0.5f, true)
+//                    .drawBehind {
+//                    drawRect(brush = brushSweepGradientStop) // will allocate a shader to occupy the 200 x 200 dp drawing area
+//                    inset(10f) {
+//                        /* 會分配一個shader佔據180 x 180 dp的繪圖區域作為inset scope 在左側、頂部、右側將繪圖區域縮小 10 個像素，底邊 */
+//                        drawRect(brush = brushSweepGradientStop)
+//                        inset(5f) {
+//                            /* 將分配一個著色器佔用 170 x 170 dp 繪圖區域作為inset scope 將繪圖區域在左側、頂部、右邊，底邊 */
+//                            drawRect(brush = brushSweepGradientStop)
+//                        }
+//                    }
+//                }) {
+//
+//                }
+//                Box(
+//                    modifier = Modifier
+//                        .weight(0.5f, true)
+//                        .drawWithCache {
+//                            val shader = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                                RuntimeShader("Shader")
+//                            } else {
+//                                TODO("VERSION.SDK_INT < TIRAMISU")
+//                            }
+//                            val shaderBrush = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                                ShaderBrush(shader)
+//                            } else {
+//                                TODO("VERSION.SDK_INT < TIRAMISU")
+//                            }
+//                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                                shader.setFloatUniform("resolution", size.width, size.height)
+//                            }
+//                            onDrawBehind {
+//                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                                    shader.setColorUniform(
+//                                        "color",
+//                                        android.graphics.Color.valueOf(
+//                                            LightYellow.red,
+//                                            LightYellow.green,
+//                                            LightYellow.blue,
+//                                            LightYellow.alpha
+//                                        )
+//                                    )
+//                                }
+//                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                                    shader.setColorUniform(
+//                                        "color2",
+//                                        android.graphics.Color.valueOf(
+//                                            Coral.red,
+//                                            Coral.green,
+//                                            Coral.blue,
+//                                            Coral.alpha
+//                                        )
+//                                    )
+//                                }
+//                                drawRect(shaderBrush)
+//                            }
+//                        }
+//
+//                )
+//            }
+            Column(modifier = Modifier.weight(0.25f, true)) {
+                // Use ImageShader Brush with background
+                Box(
+                    modifier = Modifier
+                        .weight(0.5f, true)
+                        .background(imageBrush)
+                )
+                Box(modifier = Modifier.weight(0.5f, true)) {
+                    // Use ImageShader Brush with TextStyle
+                    Text(
+                        text = "Brush\nMix",
+                        style = TextStyle(
+                            brush = imageBrush,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.sp
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+
+//    @Composable
+//    fun CompositingStrategyDemo(getSize: Dp) {
+//        Image(painter = painterResource(id = R.drawable.logo),
+//            contentDescription = getString(CONTENT_DESCRIPTION),
+//            contentScale = ContentScale.Crop,
+//            modifier = Modifier
+//                .size(getSize)
+//                .aspectRatio(1f)
+//                .background(
+//                    Brush.linearGradient(
+//                        listOf(
+//                            Color(0xFFC5E1A5),
+//                            Color(0xFF80DEEA)
+//                        )
+//                    )
+//                )
+//                .padding(8.dp)
+//                .graphicsLayer {
+//                    compositingStrategy = CompositingStrategy.Offscreen
+//                }
+//                .drawWithCache {
+//                    val path = Path()
+//                    path.addOval(
+//                        Rect(
+//                            topLeft = Offset.Zero,
+//                            bottomRight = Offset(size.width, size.height)
+//                        )
+//                    )
+//                    onDrawWithContent {
+//                        clipPath(path) {
+//                            // 這會繪製實際圖像 - 如果您不調用 drawContent，它不會呈現任何內容
+//                            this@onDrawWithContent.drawContent()
+//                        }
+//                        val dotSize = size.width / 8f
+//                        // 為內容剪下白色邊框
+//                        drawCircle(
+//                            Color.Black,
+//                            radius = dotSize,
+//                            center = Offset(
+//                                x = size.width - dotSize,
+//                                y = size.height - dotSize
+//                            ),
+//                            blendMode = BlendMode.Clear
+//                        )
+//                        // 繪製紅色圓圈指示
+//                        drawCircle(
+//                            Color(0xFFEF5350), radius = dotSize * 0.8f,
+//                            center = Offset(
+//                                x = size.width - dotSize,
+//                                y = size.height - dotSize
+//                            )
+//                        )
+//                    }
+//
+//                }
+//        )
+//    }
+
+//    @Composable
+//    fun CompositingStrategyExamples(size: Dp) {
+//        Row(
+//            modifier = Modifier.wrapContentSize(Alignment.Center)
+//        ) {
+//            /** Does not clip content even with a graphics layer usage here. By default, graphicsLayer
+//            does not allocate + rasterize content into a separate layer but instead is used
+//            for isolation. That is draw invalidations made outside of this graphicsLayer will not
+//            re-record the drawing instructions in this composable as they have not changed **/
+//            Canvas(
+//                modifier = Modifier
+//                    .graphicsLayer()
+//                    .size(size) // Note size of 100 dp here
+//                    .border(2.dp, color = Color.Blue)
+//            ) {
+//                // ... and drawing a size of 200 dp here outside the bounds
+//                drawRect(color = Color.Magenta, size = Size(200.dp.toPx(), 200.dp.toPx()))
+//            }
+//
+//            Spacer(modifier = Modifier.width(8.dp))
+//
+//            /** Clips content as alpha usage here creates an offscreen buffer to rasterize content
+//            into first then draws to the original destination **/
+//            Canvas(
+//                modifier = Modifier
+//                    // force to an offscreen buffer
+//                    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+//                    .size(size) // Note size of 100 dp here
+//                    .border(2.dp, color = Color.Blue)
+//            ) {
+//                /** ... and drawing a size of 200 dp. However, because of the CompositingStrategy.Offscreen usage above, the
+//                content gets clipped **/
+//                drawRect(color = Color.Red, size = Size(200.dp.toPx(), 200.dp.toPx()))
+//            }
+//        }
+//    }
+
 
             private fun Context.showToast(msg: String) = Toast.makeText(this, msg, LENGTH_SHORT).show()
             sealed class Result {
@@ -7082,6 +7800,24 @@ class CountNumParentData(var countNum: Int) : ParentDataModifier {
     override fun Density.modifyParentData(parentData: Any?) = this@CountNumParentData
 }
 
+@Composable
+fun LazyListState.isScrollingUp(): Boolean {
+    var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
+    var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
+    return remember(this) {
+        derivedStateOf {
+            if (previousIndex != firstVisibleItemIndex) {
+                previousIndex > firstVisibleItemIndex
+            } else {
+                previousScrollOffset >= firstVisibleItemScrollOffset
+            }.also {
+                previousIndex = firstVisibleItemIndex
+                previousScrollOffset = firstVisibleItemScrollOffset
+            }
+        }
+    }.value
+}
+
 fun Modifier.count(context: Context, num: Int) = this
     .drawWithContent {
         drawIntoCanvas { canvas ->
@@ -7117,6 +7853,8 @@ fun Modifier.setModifiers(
 //          .height(25.dp)
     }
 }
+
+fun Modifier.flipped() = this.then(FlippedModifier())
 
 /*
 * Copyright (c) 2022, smuyyh@gmail.com All Rights Reserved.
