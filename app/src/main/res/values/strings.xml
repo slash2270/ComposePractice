@@ -3,4 +3,48 @@
     <string name="contentDescription">Content Description</string>
     <string name="title_activity_second">SecondActivity</string>
     <string name="title_activity_two">TwoActivity</string>
+    <string name="jetpack_compose">Jetpack Compose</string>
+    <string name="resource">Resource</string>
+    <string name="new_year">Happy %1$s %2$d</string>
+    <string name="accessibility">Accessibility</string>
+    <string name="article_click">ArticleClick</string>
+    <string name="article_label">ArticleLabel</string>
+    <string name="label_share">LabelShare</string>
+    <string name="favorite">Favorite</string>
+    <string name="un_favorite">UnFavorite</string>
+    <string name="subscribed">Subscribed</string>
+    <string name="un_subscribed">UnSubscribed</string>
+
+    <string name="weather_sunny">Sunny</string>
+    <string name="weather_cloudy">Cloudy</string>
+    <string name="weather_overcast">Overcast</string>
+    <string name="weather_small_rain">Small rain</string>
+    <string name="weather_mid_rain">Mid rain</string>
+    <string name="weather_big_rain">Big rain</string>
+
+    <string name="weather_rainstorm">Rainstorm</string>
+    <string name="weather_small_snow">Small snow</string>
+
+    <string name="weather_mid_snow">Mid snow</string>
+    <string name="weather_big_snow">Big snow</string>
+    <string name="weather_snowstorm">Snowstorm</string>
+    <string name="weather_foggy">Foggy</string>
+
+    <string name="weather_ice">Ice</string>
+    <string name="weather_haze">Haze</string>
+
+    <string name="weather_air_quality">Air quality</string>
+
+    <string name="city_new_york">New York</string>
+    <string name="city_los_angeles">Los Angeles</string>
+    <string name="city_chicago">Chicago</string>
+    <string name="city_houston">Houston</string>
+    <string name="city_san_francisco">San Francisco</string>
+
+    <string name="basic_rain">Probability of precipitation:</string>
+    <string name="basic_humidity">Humidity:</string>
+    <string name="basic_body_temperature">Body temperature:</string>
+    <string name="basic_air_pressure">Air pressure:</string>
+    <string name="basic_precipitation">Precipitation:</string>
+    <string name="basic_visibility">Visibility:</string>
 </resources>

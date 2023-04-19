@@ -17,9 +17,12 @@ import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
+import androidx.compose.animation.graphics.res.animatedVectorResource
+import androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter
+import androidx.compose.animation.graphics.vector.AnimatedImageVector
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -29,6 +32,7 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,7 +57,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.*
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -67,12 +70,10 @@ import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.*
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -81,6 +82,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.max
+import androidx.compose.ui.unit.min
 import androidx.compose.ui.window.Dialog
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -102,6 +105,7 @@ import com.example.composepractice.Constants.Companion.KEY_BEAN_EXAMPLE
 import com.example.composepractice.Constants.Companion.KEY_BOOLEAN_EXAMPLE
 import com.example.composepractice.Constants.Companion.KEY_STRING_EXAMPLE
 import com.example.composepractice.Constants.Companion.KEY_STRING_EXAMPLE_2
+import com.example.composepractice.Constants.Companion.ROUTE_EIGHT
 import com.example.composepractice.Constants.Companion.ROUTE_FIVE
 import com.example.composepractice.Constants.Companion.ROUTE_FOUR
 import com.example.composepractice.Constants.Companion.ROUTE_MAIN
@@ -116,9 +120,8 @@ import com.example.composepractice.data.*
 import com.example.composepractice.model.ThemeType
 import com.example.composepractice.ui.theme.BloomTheme
 import com.example.composepractice.ui.theme.ComposePracticeTheme
-import com.example.composepractice.ui.theme.ComposeTutorialTheme
 import com.example.composepractice.ui.theme.Shapes
-import com.example.composepractice.view.MainActivity.VerticalScopeInstance.weight
+import com.example.composepractice.utils.BarUtils
 import com.example.composepractice.viewmodel.AnimationViewModel
 import com.funny.data_saver.core.*
 import com.funny.data_saver.core.DataSaverConverter.registerTypeConverters
@@ -137,11 +140,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.math.cos
-import kotlin.math.pow
-import kotlin.math.roundToInt
-import kotlin.math.sin
-import kotlin.properties.Delegates
+import kotlin.math.*
 import kotlin.random.Random
 import kotlin.ranges.coerceAtLeast
 import kotlin.reflect.KProperty
@@ -278,7 +277,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                         )
                                     }
                                 }
-                                ComposeTutorialTheme(darkTheme = true) {
+                                ComposePracticeTheme(darkTheme = true) {
                                     // 在我們的消息周圍添加填充
                                     Row(modifier = Modifier
                                         .padding(all = 8.dp)
@@ -313,7 +312,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     }
                                 }
                             }
-                            ComposeTutorialTheme {
+                            ComposePracticeTheme {
                                 Conversation(
                                     SampleData.conversationSample,
                                     colors = colors,
@@ -641,6 +640,13 @@ class MainActivity : ComponentActivity(), SampleInterface {
                                     "Cupcake" -> {
                                         coroutineScope.launch(Dispatchers.Main) {
                                             navController.navigate(route = ROUTE_SEVEN) {
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    }
+                                    "Donut" -> {
+                                        coroutineScope.launch(Dispatchers.Main) {
+                                            navController.navigate(route = ROUTE_EIGHT) {
                                                 launchSingleTop = true
                                             }
                                         }
@@ -2019,6 +2025,18 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 }
                 composable(route = ROUTE_SEVEN) {
                     ActivitySeven(
+                        context = context,
+                        coroutineScope = coroutineScope,
+                        colors = colors,
+                        shapes = shapes,
+                        typography = typography,
+                        style = style
+                    ) {
+                        navController.popBackStack()
+                    }
+                }
+                composable(route = ROUTE_EIGHT) {
+                    ActivityEight(
                         context = context,
                         coroutineScope = coroutineScope,
                         colors = colors,
@@ -4604,7 +4622,7 @@ class MainActivity : ComponentActivity(), SampleInterface {
     @Composable
     fun LocalComposition(style: TextStyle) {
         val localString = compositionLocalOf { "Composition Local Of" }
-        ComposeTutorialTheme(true) {
+        ComposePracticeTheme(true) {
             Column {
                 CompositionLocalProvider(
                     localString provides "Composition Local Provider"
@@ -5699,75 +5717,167 @@ class MainActivity : ComponentActivity(), SampleInterface {
                 BottomNavigationCustom(colors = colors)
             },
         ) {
-            Column {
-                val option = Options()
-                Row {
-                    Box(
-                        modifier = Modifier
-                            .width(180.dp)
-                            .height(350.dp)
-                    ) {
-                        InkColorCanvasRule(option)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .width(180.dp)
-                            .height(350.dp)
-                    ) {
-                        InkColorCanvasIrregular(option)
-                    }
-                }
-                Column(
-                    modifier = Modifier
-                        .padding(it)
-                        .padding(8.dp, 12.dp)
-                ) {
-                    val size = 50.dp
-                    Row {
-                        DrawColorRing(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        DrawContent(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        DrawBehind(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        DrawBorder(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        DrawBasic(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ImageCustomShape(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row {
-                        ImageBackgroundParameter(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ImageBackgroundReverse(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ImageBlur(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ImageBlurClip(size)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ImageCustomPainter(size)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row {
-                        ImageCustom()
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Row {
-                                ClockView(getSize = size, hourAngle = 90f, minuteAngle = 360f, secondAngle = 360f)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                MeasureText(size)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                DrawImageDemo(size)
+            val light = Font(R.font.nunitosans_light, FontWeight.W300)
+            val regular = Font(R.font.nunitosans_bold, FontWeight.W400)
+            val medium = Font(R.font.nunitosans_light, FontWeight.W500)
+            val semibold = Font(R.font.nunitosans_semibold, FontWeight.W600)
+            // 創建要在 TextStyles 中使用的字體系列
+            val craneFontFamily = FontFamily(light, regular, medium, semibold)
+            // 使用字體系列定義自定義排版
+            val craneTypography = Typography(defaultFontFamily = craneFontFamily)
+            MaterialTheme(typography = craneTypography) {
+                LazyColumn(modifier = Modifier
+                    .padding(it)
+                    .padding(
+                        dimensionResource(id = R.dimen.padding_8),
+                        dimensionResource(id = R.dimen.padding_12)
+                    )) {
+                    item {
+                        val option = Options()
+                        Row(modifier = Modifier.height(350.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .width(180.dp)
+                                    .fillMaxHeight()
+                            ) {
+                                InkColorCanvasRule(option)
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row {
-                                TriangleDemo(size)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                OvalDemo(size)
+                            Box(
+                                modifier = Modifier
+                                    .width(180.dp)
+                                    .fillMaxHeight()
+                            ) {
+                                InkColorCanvasIrregular(option)
                             }
                         }
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    val size = 50.dp
+                    item {
+                        Row {
+                            DrawColorRing(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            DrawContent(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            DrawBehind(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            DrawBorder(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            DrawBasic(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            ImageCustomShape(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    item {
+                        Row {
+                            ImageBackgroundParameter(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            ImageBackgroundReverse(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            ImageBlur(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            ImageBlurClip(size)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            ImageCustomPainter(size)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    item {
+                        LazyRow(modifier = Modifier
+                            .wrapContentHeight()) {
+                            item {
+                                ImageCustom()
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                Column {
+                                    Row {
+                                        ClockView(getSize = size, hourAngle = 90f, minuteAngle = 360f, secondAngle = 360f)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        MeasureText(size)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        DrawImageDemo(size)
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row {
+                                        TriangleDemo(size)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        OvalDemo(size)
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    item {
+                        LazyRow(modifier = Modifier.wrapContentHeight()) {
+                            item {
+                                Text(text = stringResource(R.string.resource), textAlign = TextAlign.Center, color = colors.error)
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                Text(text = stringResource(R.string.new_year, "New Year", 2023))
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+//                            item {
+//                                val image = AnimatedImageVector.animatedVectorResource(R.drawable.ic_launcher_foreground)
+//                                val atEnd by remember { mutableStateOf(false) }
+//                                Icon(
+//                                    painter = rememberAnimatedVectorPainter(image, atEnd),
+//                                    contentDescription = getString(CONTENT_DESCRIPTION), // 裝飾元素
+//                                    modifier = Modifier.size(60.dp)
+//                                )
+//                            }
+                            item {
+                                Text(text = stringResource(R.string.accessibility), textAlign = TextAlign.Center, color = colors.error)
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                CheckableRow()
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                BoxClick()
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                ArticleClick {
+
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                LowLevelClickLabel {
+                                    true
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                ShareButton {
+
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                BookMarkButton(isFavorite = false) {
+                                    true
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                TopicItem(itemTitle = "Subscribed", selected = true) {
+
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            item {
+                                Subsection(text = "Subsection")
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
                 }
             }
@@ -5953,7 +6063,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
             contentDescription = getString(CONTENT_DESCRIPTION),
             contentScale = ContentScale.Crop,
             colorFilter = ColorFilter.tint(Color.Green, blendMode = BlendMode.Darken),
-            modifier = Modifier.aspectRatio(16f / 9f)
+            modifier = Modifier
+                .aspectRatio(16f / 9f)
+                .size(90.dp, 120.dp)
         )
     }
 
@@ -6437,6 +6549,175 @@ class MainActivity : ComponentActivity(), SampleInterface {
                     }
                 }
             }
+
+    @Composable
+    fun CheckableRow() {
+        MaterialTheme {
+            var checked by remember { mutableStateOf(false) }
+            Column(
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .toggleable(
+                        value = checked,
+                        role = Role.Checkbox,
+                        onValueChange = { checked = !checked }
+                    )
+                    .padding(8.dp)
+                    .size(60.dp)
+            ) {
+                Text("Option", Modifier.weight(1f))
+                Checkbox(checked = checked, onCheckedChange = null)
+            }
+        }
+    }
+
+    @Composable
+    fun BoxClick() {
+        var clicked by remember { mutableStateOf(false) }
+        Box(
+            Modifier
+                .size(60.dp)
+                .background(if (clicked) Color.DarkGray else Color.LightGray)) {
+            Box(
+                Modifier
+                    .align(Alignment.Center)
+                    .clickable { clicked = !clicked }
+                    .background(Color.Black)
+                    .sizeIn(minWidth = 30.dp, minHeight = 30.dp)
+            )
+        }
+    }
+
+    @Composable
+    fun ArticleClick(openArticle: () -> Unit) {
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clickable(
+                    onClickLabel = stringResource(R.string.article_click),
+                    onClick = openArticle
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(getString(R.string.article_click))
+        }
+    }
+
+    @Composable
+    fun LowLevelClickLabel(openArticle: () -> Boolean) {
+        val readArticleLabel = stringResource(R.string.article_label)
+        Canvas(
+            modifier = Modifier
+                .size(60.dp)
+                .semantics {
+                    onClick(label = readArticleLabel, action = openArticle)
+                },
+            onDraw = {
+                drawRect(
+                    size = size,
+                    color = Color.Magenta,
+                    blendMode = BlendMode.Difference
+                )
+            })
+    }
+
+    @Composable
+    fun ShareButton(onClick: () -> Unit) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Filled.Share,
+                contentDescription = stringResource(R.string.label_share),
+                modifier = Modifier.size(60.dp)
+            )
+        }
+    }
+
+//    @Composable
+//    fun PostImage(post: Post, modifier: Modifier = Modifier) {
+//        val image = post.imageThumb ?: ImageBitmap.imageResource(R.drawable.monstera)
+//        Image(
+//            bitmap = image,
+//            // 指定此圖像沒有語義
+//            contentDescription = null,
+//            modifier = modifier
+//                .size(60.dp)
+//                .clip(MaterialTheme.shapes.small)
+//        )
+//    }
+
+//    @Composable
+//    private fun PostMetadata(metadata: Metadata) {
+//        // 出於可訪問性目的合併下面的元素
+//        Row(modifier = Modifier.semantics(mergeDescendants = true) {}) {
+//            Image(
+//                imageVector = Icons.Filled.AccountCircle,
+//                contentDescription = null // 裝飾性的
+//            )
+//            Column {
+//                Text(metadata.author.name)
+//                Text("${metadata.date} • ${metadata.readTimeMinutes} min read")
+//            }
+//        }
+//    }
+
+    @Composable
+    fun BookMarkButton(isFavorite: Boolean, onToggleFavorite: () -> Boolean) {
+        val actionLabel = stringResource(if (isFavorite) R.string.un_favorite else R.string.favorite)
+        Row(
+            modifier = Modifier
+                .clickable(
+                    onClick = {
+
+                    })
+                .semantics {
+                    // 設置任何明確的語義屬性
+                    customActions = listOf(
+                        CustomAccessibilityAction(actionLabel, onToggleFavorite)
+                    )
+                }
+        ) {
+            Button(
+                onClick = {
+                    onToggleFavorite()
+                },
+                // 清除在此節點上設置的任何語義屬性
+                modifier = Modifier.clearAndSetSemantics {
+
+                }
+            ) {
+                Text("Custom Action", color = colorResource(id = R.color.white))
+            }
+        }
+    }
+
+    @Composable
+    private fun TopicItem(itemTitle: String, selected: Boolean, onToggle: () -> Unit) {
+        val stateSubscribed = stringResource(R.string.subscribed)
+        val stateNotSubscribed = stringResource(R.string.un_subscribed)
+        Row(
+            modifier = Modifier
+                .semantics {
+                    // 設置任何明確的語義屬性
+                    stateDescription = if (selected) stateSubscribed else stateNotSubscribed
+                }
+                .toggleable(
+                    value = selected,
+                    onValueChange = { onToggle() }
+                )
+        ) {
+
+        }
+    }
+
+    @Composable
+    private fun Subsection(text: String) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.h5,
+            modifier = Modifier.semantics { heading() } //該節點被標記為可訪問性標題。也可以看看：語義屬性.標題
+        )
+    }
 
             @OptIn(InternalComposeApi::class)
             @Composable
@@ -7505,7 +7786,9 @@ class MainActivity : ComponentActivity(), SampleInterface {
             }
         }
         val imageBrush = ShaderBrush(ImageShader(ImageBitmap.imageResource(id = R.drawable.desert_chic)))
-        Row(modifier = Modifier.width(240.dp).fillMaxHeight()) {
+        Row(modifier = Modifier
+            .width(240.dp)
+            .fillMaxHeight()) {
             Column(modifier = Modifier.weight(0.25f, true)) {
                 Box(modifier = Modifier.weight(0.5f, true)) {
                     Canvas(
@@ -7735,6 +8018,153 @@ class MainActivity : ComponentActivity(), SampleInterface {
 //        }
 //    }
 
+    @Composable
+    fun ActivityEight(context: Context, coroutineScope: CoroutineScope, colors: Colors, style: TextStyle, shapes: Shapes, typography: Typography, navigation: () -> Unit) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    navigation()
+                                }
+                            }) {
+                            Icon(tint = colors.onError,
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = getString(CONTENT_DESCRIPTION)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.IO) {
+
+                                }
+                            }) {
+                            Icon(tint = colors.onError,
+                                imageVector = Icons.Default.Home,
+                                contentDescription = getString(CONTENT_DESCRIPTION)
+                            )
+                        }
+                    }, title = {
+                        Text(
+                            text = "ActivitySeven",
+                            color = colors.onError,
+                        )
+                    }, actions = {
+                        IconButtonDemo(
+                            content = {
+                                IconButton(onClick = {
+
+                                }) {
+                                    Icon(Icons.Filled.Info, getString(CONTENT_DESCRIPTION), tint = Color.White)
+                                }
+                            },
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.Main) {
+
+                                }
+                            })
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(tint = colors.onError, imageVector = Icons.Default.MoreVert, contentDescription = getString(CONTENT_DESCRIPTION))
+                        Text(
+                            text = "更多",
+                            color = colors.onError,
+                            modifier = Modifier.clickable {
+                                coroutineScope.launch(Dispatchers.IO) {
+
+                                }
+                            }
+                        )
+                    })
+            },
+            bottomBar = {
+
+            },
+        ) {
+            Surface(modifier = Modifier.padding(it), color = Color.Transparent) {
+                LazyColumn {
+                    item {
+                        LazyRow(modifier = Modifier.padding( dimensionResource(id = R.dimen.padding_8), 20.dp)) {
+                            val size = 60.dp
+                            item {
+                                RainDrop(size)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun RainDrop(getSize: Dp) {
+        //循环播放的动画 （ 0f ~ 1f)
+        val durationMillis = 1000
+        val animateTween by rememberInfiniteTransition().animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                tween(durationMillis, easing = LinearEasing),
+                RepeatMode.Restart //start动画
+            )
+        )
+
+        Canvas(modifier = Modifier.size(getSize)) {
+
+            // scope ： 绘制区域
+            val width = size.width
+            val x: Float = size.width / 2
+
+            // width/2是strokCap的宽度，scopeHeight处预留strokCap宽度，让雨滴移出时保持正圆，提高视觉效果
+            val scopeHeight = size.height - width / 2
+
+            // space ： 两线段的间隙
+            val space = size.height / 2.2f + width / 2 //间隙size
+            val spacePos = scopeHeight * animateTween //锚点位置随animationState变化
+            val sy1 = spacePos - space / 2
+            val sy2 = spacePos + space / 2
+
+            // line length
+            val lineHeight = scopeHeight - space
+
+            // line1
+            val line1y1 = max(0f, sy1 - lineHeight)
+            val line1y2 = max(line1y1, sy1)
+
+            // line2
+            val line2y1 = min(sy2, scopeHeight)
+            val line2y2 = min(line2y1 + lineHeight, scopeHeight)
+
+            // draw
+            drawLine(
+                Color.Black,
+                Offset(x, line1y1),
+                Offset(x, line1y2),
+                strokeWidth = width,
+                colorFilter = ColorFilter.tint(Color.Black),
+                cap = StrokeCap.Round
+            )
+
+            drawLine(
+                Color.Gray,
+                Offset(x, line2y1),
+                Offset(x, line2y2),
+                strokeWidth = width,
+                colorFilter = ColorFilter.tint(Color.Gray),
+                cap = StrokeCap.Round
+            )
+        }
+    }
+
+    @OptIn(ExperimentalAnimationApi::class)
+    @Composable
+    fun WeatherDemo() {
+        BarUtils.transparentStatusBar(this)
+        ComposePracticeTheme {
+            WeatherPage()
+        }
+    }
 
             private fun Context.showToast(msg: String) = Toast.makeText(this, msg, LENGTH_SHORT).show()
             sealed class Result {

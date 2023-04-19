@@ -12,6 +12,7 @@ class Constants {
         const val ROUTE_FIVE = "FiveActivity"
         const val ROUTE_SIX = "SixActivity"
         const val ROUTE_SEVEN = "SevenActivity"
+        const val ROUTE_EIGHT = "EightActivity"
         const val KEY_STRING_EXAMPLE = "key_string_example"
         const val KEY_BOOLEAN_EXAMPLE = "key_boolean_example"
         const val KEY_BEAN_EXAMPLE = "key_bean_example"
